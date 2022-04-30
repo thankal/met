@@ -730,6 +730,24 @@ class Parser:
             else:
                 self.error('MissingId')  
 
+# intermediate code
+class Quad :
+    def __init__(self, label, operator, op1, op2, op3):
+        self.label = label
+        self.operator = operator
+        self.op1 = op1
+        self.op2 = op2
+        self.op3 = op3
+
+    def genQuad(label, operator, op1, op2, op3):
+
+        # create a new quad
+        newQuad = Quad(label, operator, op1, op2, op3)
+        label_counter += 1
+        
+
+
+
 
 ## testing
 # name = sys.argv[1]
