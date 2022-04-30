@@ -789,7 +789,14 @@ def backpatch(list, label):
         quad_to_complete = searchQuad(label) # search the quad object with a certain label number
         quad_to_complete.set_op3(label) # complete the quad's last operand with the updated label
 
+def makeList(label):
+    new_list = [label]
+    return new_list
 
+def mergeList(list1,list2):
+    list = list1.extend(list2)    
+    return list
+        
 name = sys.argv[1] # get command line argument
 token = Token(None, None, 1)
 lex = Lex(name, 1, token)
