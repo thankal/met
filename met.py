@@ -13,6 +13,9 @@ mulOperator = ['*','/']
 delimeter = [',','.',';']
 groupSymbol= ['(',')','{','}','[',']']
 
+# used in intermediate code generation - class Quad
+label_number = 1 # a counter that keeps track of current quad label
+temp_number = 1 # a counter that keeps track of current temporary variable number
 
 class Token:
     def __init__(self, recognized_string, family, line_number):
@@ -35,7 +38,6 @@ class Lex:
 
     def __del__(self):
         source_file.close() # close the file (read-only)
-        # TODO: __del__ maybe add more to it?
 
     def error(self, type):
         if (type == 'CommentException'):
@@ -80,7 +82,7 @@ class Lex:
                 continue
             elif (char.isspace() or ('\t' in char)) or openComment:
                 continue # skip white characters
-            elif char == '': # EOF TODO: fix/not needed
+            elif char == '': 
                 if openComment : self.error('CommentException') # comment not closed
                 else :
                     recognized_string = 'eof'
@@ -101,7 +103,7 @@ class Lex:
                         char = source_file.read(1) # peek  
                     else:
                         if ((char >= 'A' and char <= 'Z') or (char >= 'a' and char <= 'z')):
-                            print('hit exception')
+                            # print('hit exception')
                             self.error('IllegalNameException')
                         source_file.seek(save_cursor) # revert cursor
                         family = 'number'
@@ -110,7 +112,7 @@ class Lex:
 
                 # id
                 if ((char >= 'A' and char <= 'Z') or (char >= 'a' and char <= 'z')) :
-                    while ((char >= '0' and char <= '9') or (char >= 'A' and char <= 'Z') or (char >= 'a' and char <= 'z')): # TODO: improvements?
+                    while ((char >= '0' and char <= '9') or (char >= 'A' and char <= 'Z') or (char >= 'a' and char <= 'z')): 
                         recognized_string += char
                         save_cursor = source_file.tell() # save cursor
                         char = source_file.read(1) # peek  
@@ -210,67 +212,69 @@ class Parser:
         print('compilation successfully completed')
 
     def get_token(self):
-        tokenn = self.lexical_analyzer.next_token()
-        print(tokenn)
-        return tokenn # get the next token
+        next_token = self.lexical_analyzer.next_token()
+        print (next_token)
+        return next_token # get the next token
 
     def error(self, type):
         if (type == 'MissingCloseParen'):
-            print("Every program which contains '(' should end with ')' ")
+            print(f"There is an unclosed parenthesis '(' in line {token.line_number}. Every '(' should close with ')' but instead got '{token.recognized_string}'")
+        
+        elif (type == 'MissingDefault'):
+            print(f"'default' keyword expected in line {token.line_number}")
 
         elif (type == 'MissingOpenParen'):
-            print(f"Open paren '(' expected in line {token.line_number} but instead got {token.recognized_string}")
+            print(f"Open paren '(' expected in line {token.line_number} but instead got '{token.recognized_string}'")
                 
         elif(type == 'MissingProgramId'):
-            print("The name of the program expected after the keyword program in line 1.The illegal name appeared.  ")
+            print("The name of the program expected after the keyword 'program' in line 1 but instead got '{token.recognized_string}'")
 
         elif (type == 'MissingCloseBracket'):
-            print("Every program which contains '[' should end with ']' ")
+            print(f"There is an unclosed bracket '[' in line {token.line_number}. Every '[' should close with ']' but instead got '{token.recognized_string}'")
 
         elif (type == 'MissingOpenBracket'):
-            print(f"Open bracket '[' expected in line {token.line_number} but instead got {token.recognized_string}")    
+            print(f"Open bracket '[' expected in line {token.line_number} but instead got '{token.recognized_string}'")    
 
         elif (type == 'MissingCloseCurlyBracket'):
-            print("Every program which contains '{' should end with '}' ")
+            print("Close curly bracket '}' expected in line %d. Every '{' should close with '}' but instead got '%s'"% (token.line_number, token.recognized_string))
 
         elif (type == 'MissingOpenCurlyBracket'):
-            print("Open curly bracket '{' expected in line %d " % (token.line_number))
+            print("Open curly bracket '{' expected in line %d but instead got '%s'"% ((token.line_number), (token.recognized_string)))
 
         elif (type == 'MissingFullStop'):
-            print("Every program should end with a fullstop,fullstop at the end is missing")
+            print("Every program should end with a fullstop, fullstop at the end is missing")
 
         elif (type == 'MissingRelOperator'):
-            print("RelOperator Expected")
+            print(f"RelOperator Expected in line '{token.line_number}'")
 
         elif (type == 'MissingProgramm'):
-            print("keyword program expected in line 1.All programs should start with the keyword program ")
+            print(f"Keyword 'program' expected in line '{token.line_number}'. All programs should start with the keyword 'program'")
 
         elif (type == 'MissingInInout'):
-            print("keyword in or inout expected in line 1.All programs should start with the keyword in or inout")
+            print(f"keyword in or inout expected in line '{token.line_number}'")
 
         elif (type == 'MissingInInoutdId'):
-            print("Expected id after in/inout keyword")
+            print(f"Expected id after in/inout keyword in line '{token.line_number}' but instead got '{token.recognized_string}'")
 
         elif (type == 'MissingQuestionMark'):
-            print("Questionmark expected") 
+            print(f"Questionmark expected in line '{token.line_number}' but instead got '{token.recognized_string}'") 
 
         elif (type == 'MissingAssignment'):
-            print("Expected  ':='  for assigmnent of variable") 
+            print(f"Expected  ':='  for assigmnent of variable in line '{token.line_number}' but instead got '{token.recognized_string}'") 
 
         elif (type == 'MissingFunctionProcedure'):
-            print("Keyword function or procedure expected.All subprograms should start with the keyword function or procedure")
+            print(f"Keyword 'function' or 'procedure' expected in line '{token.line_number}' but instead got '{token.recognized_string}'. All subprograms should start with the keyword 'function' or 'procedure'")
         
         elif (type == 'MissingNoWord'):
             print("No characters are allowed after the fullstop indicating the end of the program")
         
         elif (type == 'MissingFactor'):
-            print(f"Expected factor in line {token.line_number} but instead got {token.recognized_string}")
+            print(f"Expected factor in line {token.line_number} but instead got '{token.recognized_string}'")
         exit(-1)   
 
     def ifStat(self):
-        print('ifStat')
+        # print('ifStat')
         global token 
-        token = self.get_token()
         if token.recognized_string == '(':
                 token = self.get_token()
                 self.condition()
@@ -284,15 +288,15 @@ class Parser:
         else:
             self.error('MissingOpenParen')
 
-    def elseStat(self):
-        print('elseStat')
+    def elsepart(self):
+        # print('elsepart')
         global token 
         if token.recognized_string == 'else':
             token = self.get_token()
             self.statements()
 
     def whileStat(self):
-        print('whileStat')
+        # print('whileStat')
         global token 
         if token.recognized_string == '(':
             token = self.get_token()
@@ -308,9 +312,10 @@ class Parser:
             self.error('MissingOpenParen')
 
     def switchcaseStat(self):
-        print('switchcaseStat')
+        # print('switchcaseStat')
         global token 
         while(token.recognized_string == 'case'):
+            token = self.get_token()
             if token.recognized_string == '(':
                 token = self.get_token()
                 self.condition()
@@ -325,9 +330,10 @@ class Parser:
                 self.error('MissingOpenParen')
 
     def forcaseStat(self):
-        print('forcaseStat')
+        # print('forcaseStat')
         global token 
         while(token.recognized_string == 'case'):
+            token = self.get_token()
             if token.recognized_string == '(':
                 token = self.get_token()
                 self.condition()
@@ -344,12 +350,15 @@ class Parser:
         if(token.recognized_string == 'default'):
             token = self.get_token()
             self.statements()
+        else:
+            self.error('MissingDefault')
 
 
     def incaseStat(self):
-        print('incaseStat')
+        # print('incaseStat')
         global token 
         while(token.recognized_string == 'case'):
+            token = self.get_token()
             if token.recognized_string == '(':
                 token = self.get_token()
                 self.condition()
@@ -364,11 +373,11 @@ class Parser:
                 self.error('MissingOpenParen')     
 
     def returnStat(self):
-        print('returnStat')
+        # print('returnStat')
         global token 
         if token.recognized_string == '(':
             token = self.get_token()
-            self.exrpession()
+            self.expression()
             if token.recognized_string != ')':
                 self.error('MissingCloseParen')
             token = self.get_token()
@@ -377,7 +386,7 @@ class Parser:
 
 
     def printStat(self):
-        print('printStat')
+        # print('printStat')
         global token 
         if token.recognized_string == '(':
             token = self.get_token()
@@ -390,7 +399,7 @@ class Parser:
 
 
     def inputStat(self):
-        print('inputStat')
+        # print('inputStat')
         global token 
         if token.recognized_string == '(':
             token = self.get_token()
@@ -398,14 +407,14 @@ class Parser:
               self.error('MissingId')
             token = self.get_token()
             if token.recognized_string != ')':
-                self.error('MissingCloseParen') #TODO: change to MissingCloseParen
+                self.error('MissingCloseParen') 
             token = self.get_token()
             
         else: 
-            self.error('MissingOpenParen') #TODO: MissingOpenParen
+            self.error('MissingOpenParen') 
 
     def declarations(self):
-        print('declarations')
+        # print('declarations')
         global token 
         while (token.recognized_string == 'declare') :
             token = self.get_token()
@@ -417,14 +426,14 @@ class Parser:
              
     
     def block(self):
-        print('block')
+        # print('block')
         global token 
         if token.recognized_string == '{':
             token = self.get_token()
             self.declarations()
             self.subprograms()
             self.blockstatements()
-            print('back at block')
+            # print('back at block')
             if token.recognized_string != '}':
               self.error('MissingCloseCurlyBracket')
             token = self.get_token()
@@ -433,7 +442,7 @@ class Parser:
             self.error('MissingOpenCurlyBracket')       
     
     def formalparlist(self):
-        print('formalparlist')
+        # print('formalparlist')
         global token 
         if token.recognized_string != ')': # if parenthesis don't close immediately
             self.formalparitem()
@@ -442,11 +451,11 @@ class Parser:
                 self.formalparitem()
 
     def formalparitem(self):
-        print('formalparitem')
+        # print('formalparitem')
         global token 
         if (token.recognized_string == 'in' or token.recognized_string == 'inout'):
             token = self.get_token()
-            if self.token.family != 'id':
+            if token.family != 'id':
                 self.error('MissingInInoutdId')
             token = self.get_token()        
         else:
@@ -454,7 +463,7 @@ class Parser:
 
 
     def statements(self):
-        print('statements')
+        # print('statements')
         global token 
         if token.recognized_string == '{':
             token = self.get_token()
@@ -472,18 +481,16 @@ class Parser:
             token = self.get_token()
            
     def blockstatements(self):
-        print('blockstatements')
+        # print('blockstatements')
         global token 
         self.statement()
-        print('back at blockstatements')
+        # print('back at blockstatements')
         while(token.recognized_string == ';'):
-            print('found ;')
-
             token = self.get_token()
             self.statement()   
 
     def statement(self):
-        print('statement')
+        # print('statement')
         global token 
 
         if token.recognized_string =='if':
@@ -500,7 +507,7 @@ class Parser:
 
         elif token.recognized_string =='forcase':
              token = self.get_token()
-             self.forCaseStat()
+             self.forcaseStat()
 
         elif token.recognized_string =='incase':
              token = self.get_token()
@@ -529,7 +536,7 @@ class Parser:
         
                 
     def assignStat(self):
-        print('assignStat')
+        # print('assignStat')
         global token 
         if (token.family == 'assignment'):
             token = self.get_token()
@@ -538,7 +545,7 @@ class Parser:
             self.error('MissingAssignment') 
 
     def condition(self):
-        print('condition')
+        # print('condition')
         global token
         self.boolterm()
         while token.recognized_string == 'or':
@@ -546,7 +553,7 @@ class Parser:
             self.boolterm()
 
     def boolterm (self):
-        print('boolterm ')
+        # print('boolterm ')
         global token 
         self.boolfactor()
         while token.recognized_string == 'and':
@@ -554,7 +561,7 @@ class Parser:
             self.boolfactor()       
     
     def boolfactor(self):
-        print('boolfactor')
+        # print('boolfactor')
         global token
         if token.recognized_string == 'not':
             token = self.get_token()
@@ -585,7 +592,7 @@ class Parser:
             self.expression()      
         
     def expression(self):
-        print('expression')
+        # print('expression')
         global token 
         self.optionalSign()
         self.term()
@@ -594,7 +601,7 @@ class Parser:
             self.term()      
             
     def term(self):
-        print('term')
+        # print('term')
         global token 
         self.factor()
         while(token.family == 'mulOperator'):
@@ -602,7 +609,7 @@ class Parser:
             self.factor()
         
     def program(self):
-        print('program')
+        # print('program')
         global token
         if token.recognized_string == 'program':
             token = self.get_token()
@@ -623,7 +630,7 @@ class Parser:
             self.error('MissingProgram')     
 
     def factor(self):
-        print('factor')
+        # print('factor')
         global token
         if token.recognized_string == '(':
             token = self.get_token()
@@ -643,7 +650,7 @@ class Parser:
   
             
     def actualparlist(self):
-        print('actualparlist')
+        # print('actualparlist')
         global token
         if (token.recognized_string != ')'): # if parenthesis don't close immediately
             self.actualparitem()
@@ -653,7 +660,7 @@ class Parser:
 
                    
     def subprogram(self):
-        print('subprogram')
+        # print('subprogram')
         global token 
         if (token.recognized_string == 'function') or (token.recognized_string == 'procedure'):
             token = self.get_token()
@@ -676,15 +683,14 @@ class Parser:
             self.error('MissingFunctionProcedure') 
 
     def subprograms(self):
-        print('subprograms')
+        # print('subprograms')
         global token 
         while(token.recognized_string == 'function' or token.recognized_string =='procedure'):
-            token = self.get_token()
             self.subprogram()
            
 
     def actualparitem(self):
-        print('actualparitem')
+        # print('actualparitem')
         global token
         if token.recognized_string == 'in':
             token = self.get_token()
@@ -699,7 +705,7 @@ class Parser:
           self.error('MissingInInout')
       
     def idtail(self):
-        print('idtail')
+        # print('idtail')
         global token
         if token.recognized_string == '(':
             token = self.get_token()
@@ -709,16 +715,17 @@ class Parser:
             token = self.get_token()
             
     def optionalSign(self):
-        print('optionalSign')
+        # print('optionalSign')
         global token
         if token.family == 'addOperator':
           token = self.get_token()
 
             
     def varlist(self):
-        print('varlist')
+        # print('varlist')
         global token 
         if (token.recognized_string != ';'): # check for ';' if empty (see declarations grammar)
+
             if token.family == 'id':
                 token = self.get_token()
                 while(token.recognized_string == ','):
@@ -733,33 +740,28 @@ class Parser:
 # intermediate code
 class Quad :
     def __init__(self, label, operator, op1, op2, op3):
-        self.label = label
+        self.label = label # so that we can identify different quads
         self.operator = operator
         self.op1 = op1
         self.op2 = op2
         self.op3 = op3
 
-    def genQuad(label, operator, op1, op2, op3):
+    def genQuad(operator, op1, op2, op3):
+        # create a new quad with the next label number
+        newQuad = Quad(label_number, operator, op1, op2, op3)
+    
+    def nextQuad():
+        label_number += 1
+        return label_number
 
-        # create a new quad
-        newQuad = Quad(label, operator, op1, op2, op3)
-        label_counter += 1
-        
-
-
-
-
-## testing
-# name = sys.argv[1]
-# token = Token(None, None, None)
-# lex = Lex(name, 1, token)
+    def newTemp():
+        temp = 'T_' + temp_number
+        temp_number += 1
+        return temp
 
 
-# for i in range(100):
-#     print(lex.next_token())
-
-name = sys.argv[1]
+name = 'primes.ci' # get command line argument
 token = Token(None, None, 1)
 lex = Lex(name, 1, token)
 parser = Parser(lex)
-parser.syntax_analyzer()
+parser.syntax_analyzer() # run syntax analyzer
