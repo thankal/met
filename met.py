@@ -745,6 +745,3 @@ token = Token(None, None, 1)
 lex = Lex(name, 1, token)
 parser = Parser(lex)
 parser.syntax_analyzer()
-
-#asdfasdfasdf
-fffff
