@@ -756,6 +756,14 @@ class Quad :
 
     def get_label(self):
         return self.label
+
+class QuadPointer :
+    def __init__(self, label, quad):
+        self.label = label
+        self.quad = quad
+    
+    def get_quad(self):
+        return self.quad
     
 
 
@@ -796,6 +804,10 @@ def makeList(label):
 def mergeList(list1,list2):
     list = list1.extend(list2)    
     return list
+
+def emptyList():
+    new_list = []
+    return new_list
         
 name = sys.argv[1] # get command line argument
 token = Token(None, None, 1)
