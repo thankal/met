@@ -746,18 +746,48 @@ class Quad :
         self.op2 = op2
         self.op3 = op3
 
-    def genQuad(operator, op1, op2, op3):
-        # create a new quad with the next label number
-        newQuad = Quad(label_number, operator, op1, op2, op3)
+    def __str__(self):
+        return f"{self.label}, \
+                {self.operator}, \
+                {self.op1}, {self.op2}, {self.op3}"
     
-    def nextQuad():
-        label_number += 1
-        return label_number
+    def set_op3(self, op3):
+        self.op3 = op3 
 
-    def newTemp():
-        temp = 'T_' + temp_number
-        temp_number += 1
-        return temp
+    def get_label(self):
+        return self.label
+    
+
+
+# helper routines
+
+quad_list = [] # global list that keeps all quad objects
+def searchQuad(label):
+    for quad in quad_list:
+        if quad.get_label() == label:
+            return quad
+
+
+def genQuad(operator, op1, op2, op3):
+    # create a new quad with the next label number
+    newQuad = Quad(label_number, operator, op1, op2, op3)
+    quad_list.add(newQuad) # add newly created quad in the list
+
+def nextQuad():
+    label_number += 1
+    return label_number
+
+def newTemp():
+    temp = 'T_' + temp_number
+    temp_number += 1
+    return temp
+
+def backpatch(list, label):
+    for lbl in list:
+        quad_obj = searchQuad(label) # search the quad object with a certain label
+        quad_obj.set_op3(label)
+
+
 
 
 name = sys.argv[1] # get command line argument
