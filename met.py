@@ -585,10 +585,15 @@ class Parser:
         # print('boolterm ')
         global token 
         self.boolfactor()
+        boolterm.true = boolfactor.true
+        boolterm.false = boolterm.false
         while token.recognized_string == 'and':
+            backpatch(boolterm.true,nextQuad())
             token = self.get_token()
-            self.boolfactor()       
-    
+            self.boolfactor()
+            boolterm.false = mergeList(boolterm.false,boolfactor.false)       
+            boolterm.true = boolfactor.true
+            
     def boolfactor(self):
         # print('boolfactor')
         global token
