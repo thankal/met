@@ -789,13 +789,13 @@ def backpatch(list, label):
 
 
 
-    def makeList(label):
-        new_list = [label]
-        return new_list
+def makeList(label):
+    new_list = [label]
+    return new_list
 
-    def mergeList(list1,list2):
-        list = list1.extend(list2)    
-        return list
+def mergeList(list1,list2):
+    list = list1.extend(list2)    
+    return list
         
 name = sys.argv[1] # get command line argument
 token = Token(None, None, 1)
