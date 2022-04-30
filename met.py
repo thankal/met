@@ -2,9 +2,11 @@
 # Athanasios Kalyviotis, 4607, cse84607
 # Dimitrios Giannitsakis, 4338, cse84338
 
+from contextlib import redirect_stderr
 import numbers
 import sys
 import io
+from unittest import result
 
 
 keyword = ['while','if','else']
@@ -16,6 +18,9 @@ groupSymbol= ['(',')','{','}','[',']']
 # used in intermediate code generation - class Quad
 label_number = 1 # a counter that keeps track of current quad label
 temp_number = 1 # a counter that keeps track of current temporary variable number
+name = "" # used as a placeholder for block names
+id = "" # used as a placeholder for function and variable names
+res = 0 # used as a placeholder for the result of expressions
 
 class Token:
     def __init__(self, recognized_string, family, line_number):
@@ -385,15 +390,38 @@ class Parser:
             self.error('MissingOpenParen')
 
 
+    def callStat(self):
+        # print('callstat')
+        global token 
+        token = self.get_token()
+        if token.family != 'id':
+            self.error('MissingId')
+        global name
+        name = token.recognized_string
+
+        token = self.get_token()
+        if token.recognized_string == '(':
+            token = self.get_token()
+            self.actualparlist()
+            genQuad("call", name, "_", "_")
+            if token.recognized_string != ')':
+                self.error('MissingCloseParen')
+            token = self.get_token()
+        else:
+            self.error('MissingOpenParen')
+
     def printStat(self):
         # print('printStat')
         global token 
         if token.recognized_string == '(':
             token = self.get_token()
             self.expression()
+            global res
+            # res = self.expression() ; the result of the expression TODO
             if token.recognized_string != ')':
                 self.error('MissingCloseParen')
             token = self.get_token()
+            genQuad("out", res, "_", "_") # TODO: what res?
         else:
             self.error('MissingOpenParen')
 
@@ -405,10 +433,16 @@ class Parser:
             token = self.get_token()
             if token.family != 'id':
               self.error('MissingId')
+
+            global id
+            id = token.recognized_string
+
             token = self.get_token()
             if token.recognized_string != ')':
                 self.error('MissingCloseParen') 
             token = self.get_token()
+
+            genQuad("in", id, "_", "_")
             
         else: 
             self.error('MissingOpenParen') 
@@ -425,6 +459,26 @@ class Parser:
             
              
     
+    def program_block(self):
+        # print('block')
+        global token 
+        if token.recognized_string == '{':
+            token = self.get_token()
+            self.declarations()
+            self.subprograms()
+            # TODO: blockstatements or block?
+            genQuad("begin_block", name, "_", "_")
+            self.blockstatements()
+            genQuad("halt", "_", "_", "_") # the only differance to block()
+            genQuad("end_block", name, "_", "_")
+            # print('back at block')
+            if token.recognized_string != '}':
+              self.error('MissingCloseCurlyBracket')
+            token = self.get_token()
+
+        else: 
+            self.error('MissingOpenCurlyBracket')       
+
     def block(self):
         # print('block')
         global token 
@@ -432,7 +486,10 @@ class Parser:
             token = self.get_token()
             self.declarations()
             self.subprograms()
+            # TODO: blockstatements or block?
+            genQuad("begin_block", name, "_", "_")
             self.blockstatements()
+            genQuad("end_block", name, "_", "_")
             # print('back at block')
             if token.recognized_string != '}':
               self.error('MissingCloseCurlyBracket')
@@ -541,6 +598,9 @@ class Parser:
         if (token.family == 'assignment'):
             token = self.get_token()
             self.expression()
+            global res
+            # TODO: what is res? arithmetic expressions pending
+            genQuad(":=", res, "_", "_")
         else:
             self.error('MissingAssignment') 
 
@@ -614,8 +674,11 @@ class Parser:
         if token.recognized_string == 'program':
             token = self.get_token()
             if token.family == 'id':
+                global name 
+                name = token.recognized_string # keep block name to generate quad later
+
                 token = self.get_token()
-                self.block()
+                self.program_block()
                 if token.recognized_string == '.':
                     token = self.get_token()
                     if token.recognized_string == 'eof':
@@ -664,6 +727,9 @@ class Parser:
         global token 
         if (token.recognized_string == 'function') or (token.recognized_string == 'procedure'):
             token = self.get_token()
+            global name
+            name = token.recognized_string
+
             if token.family == 'id':
                 token = self.get_token()
                 if token.recognized_string == '(':
@@ -695,8 +761,16 @@ class Parser:
         if token.recognized_string == 'in':
             token = self.get_token()
             self.expression()
+            # TODO: below; takes name but from where? it may be an expression... how to solve
+            genQuad("par", id, "cv", "_")
         elif token.recognized_string == 'inout':
             token = self.get_token()
+
+            global id
+            id = token.recognized_string
+            # TODO: add genQuad(par, T_x, ret, _) functionality in case of :=
+            genQuad("par", id, "ref", "_")
+
             if token.family != 'id':
               self.error('MissingInInoutId')
             token = self.get_token()
@@ -757,7 +831,7 @@ class Quad :
     def get_label(self):
         return self.label
 
-class QuadPointer :
+class QuadPointer : # TODO: maybe delete no use?
     def __init__(self, label, quad):
         self.label = label
         self.quad = quad
