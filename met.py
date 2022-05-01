@@ -813,12 +813,12 @@ class Parser:
 
 # intermediate code
 class Quad :
-    def __init__(self, label, operator, op1, op2, op3):
+    def __init__(self, label, operator, op1, op2, res):
         self.label = label # so that we can identify different quads
         self.operator = operator
         self.op1 = op1
         self.op2 = op2
-        self.op3 = op3
+        self.res = res
 
     def __str__(self):
         return f"{self.label}, \
@@ -852,9 +852,9 @@ def searchQuad(label):
             return quad # return quad object
 
 
-def genQuad(operator, op1, op2, op3):
+def genQuad(operator, op1, op2, res):
     # create a new quad with the next label number
-    newQuad = Quad(label_number, operator, op1, op2, op3)
+    newQuad = Quad(label_number, operator, op1, op2, res)
     quad_list.add(newQuad) # add newly created quad to the list
 
 def nextQuad():
