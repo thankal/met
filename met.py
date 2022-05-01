@@ -277,15 +277,15 @@ class Parser:
         global token 
         if token.recognized_string == '(':
                 token = self.get_token()
-                self.condition()
+                condition = self.condition()
 
                 if token.recognized_string == ')':
-                    backpatch(Condition.true,nextQuad())
+                    backpatch(condition.true,nextQuad())
                     token=self.get_token()
                     self.statements()
                     ifList = makeList(nextQuad())
                     genQuad('jump','_','_','_')
-                    backpatch(Condition.false,nextQuad())
+                    backpatch(condition.false,nextQuad())
                     self.elsepart()
                     backpatch(ifList,nextQuad())
                 else:
@@ -306,14 +306,14 @@ class Parser:
         global token 
         if token.recognized_string == '(':
             token = self.get_token()
-            self.condition()
+            condition = self.condition()
 
             if token.recognized_string == ')':
-                backpatch(Condition.true,nextQuad())
+                backpatch(condition.true,nextQuad())
                 token=self.get_token()
                 self.statements()
                 genQuad('jump','_','_',condQuad)        
-                backpatch(Condition.false,nextQuad())
+                backpatch(condition.false,nextQuad())
             else:
                 self.error('MissingCloseParen')
         else:
@@ -327,8 +327,8 @@ class Parser:
             token = self.get_token()
             if token.recognized_string == '(':
                 token = self.get_token()
-                self.condition()
-                backpatch(Condition.true,nextQuad())
+                condition = self.condition()
+                backpatch(condition.true,nextQuad())
             
                 if token.recognized_string == ')':
                         token = self.get_token()
@@ -336,7 +336,7 @@ class Parser:
                         t=makeList(nextQuad)
                         genQuad('jump','_','_','_')
                         exitList=mergeList(exitList,t)
-                        backpatch=(Condition.False,nextQuad())
+                        backpatch=(condition.false,nextQuad())
                 else:
                     self.error('MissingCloseParen')
 
@@ -351,10 +351,10 @@ class Parser:
             token = self.get_token()
             if token.recognized_string == '(':
                 token = self.get_token()
-                self.condition()
+                condition = self.condition()
            
                 if token.recognized_string == ')':
-                    backpatch(Condition.True,nextQuad())
+                    backpatch(condition.true,nextQuad())
                     token = self.get_token()
                     self.statements()
                     genQuad('jump','_','_','_')
@@ -382,14 +382,14 @@ class Parser:
             token = self.get_token()
             if token.recognized_string == '(':
                 token = self.get_token()
-                self.condition()
+                condition=self.condition()
            
                 if token.recognized_string == ')':
-                    backpatch(Condition.true,nextQuad())
+                    backpatch(condition.true,nextQuad())
                     token = self.get_token()
                     self.statements()
                     genQuad(':=',1,'_',flag)
-                    backpatch(Condition.false,nextQuad())
+                    backpatch(condition.false,nextQuad())
                 else:
                      self.error('MissingCloseParen')
  
