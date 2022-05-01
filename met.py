@@ -715,13 +715,15 @@ class Parser:
             f_place = e_place
 
         elif token.family == 'id':
+            id_place = token.recognized_string
             token = self.get_token()
-            id_place = self.idtail()   # TODO: follow idtail for return!
+            self.idtail()   # TODO: follow idtail for return?
+
             f_place = id_place # TODO: can be shortened f_place=self.idtail()
 
         elif token.family == 'number': 
-            f_place = token.recognized_string
             token = self.get_token()
+            f_place = token.recognized_string
 
         else:
             self.error('MissingFactor')   
