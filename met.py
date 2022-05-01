@@ -358,7 +358,7 @@ class Parser:
                     token = self.get_token()
                     self.statements()
                     genQuad('jump','_','_','_')
-                    backpatch(Condition.false,nextQuad())
+                    backpatch(condition.false,nextQuad())
                 else:
                      self.error('MissingCloseParen')
  
@@ -571,7 +571,9 @@ class Parser:
     def condition(self):
         # print('condition')
         global token
+        boolterm = self.boolterm()
         self.boolterm()
+        condition = Bool_List()
         condition.true = boolterm.true
         condition.false = boolterm.false
         while token.recognized_string == 'or':
@@ -591,8 +593,11 @@ class Parser:
             backpatch(boolterm.true,nextQuad())
             token = self.get_token()
             self.boolfactor()
+            boolterm = Bool_List()
             boolterm.false = mergeList(boolterm.false,boolfactor.false)       
             boolterm.true = boolfactor.true
+
+        return boolterm    
             
     def boolfactor(self):
         # print('boolfactor')
@@ -601,7 +606,7 @@ class Parser:
             token = self.get_token()
             if token.recognized_string == '[':
                 token = self.get_token()
-                self.condition()
+                condition =self.condition()
                 if (token.recognized_string != ']'):
                     self.error('MissingCloseBracket')
                 boolfactor.true = condition.false
@@ -838,7 +843,9 @@ def backpatch(list, label):
         quad_obj = searchQuad(label) # search the quad object with a certain label
         quad_obj.set_op3(label)
 
-
+def emptyList():
+    new_list = []
+    return new_list
 
 def makeList(label):
     new_list = [label]
