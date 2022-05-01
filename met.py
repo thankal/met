@@ -655,18 +655,29 @@ class Parser:
         # print('expression')
         global token 
         self.optionalSign()
-        self.term()
+        t1_place = self.term()
         while(token.family == 'addOperator'):
             token = self.get_token()
-            self.term()      
+            t2_place = self.term()      
+            w = newTemp()
+            genQuad("+", t1_place, t2_place, w)
+            t1_place = w
+        e_place = t1_place
+        return e_place
             
     def term(self):
         # print('term')
         global token 
-        self.factor()
+        f1_place = self.factor()
         while(token.family == 'mulOperator'):
             token = self.get_token()
-            self.factor()
+            f2_place = self.factor()
+            w = newTemp()
+            genQuad("*", f1_place, f2_place, w)
+            f1_place = w
+        t_place = f1_place
+        return t_place
+
         
     def program(self):
         # print('program')
@@ -697,19 +708,25 @@ class Parser:
         global token
         if token.recognized_string == '(':
             token = self.get_token()
-            self.expression()
+            e_place = self.expression()
             if token.recognized_string != ')':
                 self.error('MissingCloseParen')
             token = self.get_token()
+            f_place = e_place
 
         elif token.family == 'id':
             token = self.get_token()
-            self.idtail()   
+            id_place = self.idtail()   # TODO: follow idtail for return!
+            f_place = id_place # TODO: can be shortened f_place=self.idtail()
+
         elif token.family == 'number': 
+            f_place = token.recognized_string
             token = self.get_token()
 
         else:
             self.error('MissingFactor')   
+
+        return f_place
   
             
     def actualparlist(self):
