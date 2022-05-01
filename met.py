@@ -807,27 +807,40 @@ class Quad :
     def get_label(self):
         return self.label
 
+
 class Bool_List:
     def __init__(self, true, false):
         # two lists 
         self.true = true
         self.false = false
+
+
+class QuadPointer :
+    def __init__(self, label, quad):
+        self.label = label
+        self.quad = quad
+    
+    def get_quad(self):
+        return self.quad
+
     
 
 
 # helper routines
 
 quad_list = [] # global list that keeps all quad objects
+
+# returns the quad object with the specified label
 def searchQuad(label):
     for quad in quad_list:
         if quad.get_label() == label:
-            return quad
+            return quad # return quad object
 
 
 def genQuad(operator, op1, op2, op3):
     # create a new quad with the next label number
     newQuad = Quad(label_number, operator, op1, op2, op3)
-    quad_list.add(newQuad) # add newly created quad in the list
+    quad_list.add(newQuad) # add newly created quad to the list
 
 def nextQuad():
     label_number += 1
@@ -840,12 +853,9 @@ def newTemp():
 
 def backpatch(list, label):
     for lbl in list:
-        quad_obj = searchQuad(label) # search the quad object with a certain label
-        quad_obj.set_op3(label)
+        quad_to_complete = searchQuad(label) # search the quad object with a certain label number
+        quad_to_complete.set_op3(label) # complete the quad's last operand with the updated label
 
-def emptyList():
-    new_list = []
-    return new_list
 
 def makeList(label):
     new_list = [label]
@@ -854,6 +864,11 @@ def makeList(label):
 def mergeList(list1,list2):
     list = list1.extend(list2)    
     return list
+
+
+def emptyList():
+    new_list = []
+    return new_list
 
         
 name = sys.argv[1] # get command line argument
