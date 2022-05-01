@@ -282,12 +282,17 @@ class Parser:
         global token 
         if token.recognized_string == '(':
                 token = self.get_token()
-                self.condition()
+                condition = self.condition()
 
                 if token.recognized_string == ')':
+                    backpatch(condition.true,nextQuad())
                     token=self.get_token()
                     self.statements()
+                    ifList = makeList(nextQuad())
+                    genQuad('jump','_','_','_')
+                    backpatch(condition.false,nextQuad())
                     self.elsepart()
+                    backpatch(ifList,nextQuad())
                 else:
                     self.error('MissingCloseParen')      
         else:
@@ -302,15 +307,18 @@ class Parser:
 
     def whileStat(self):
         # print('whileStat')
+        condQuad = nextQuad()
         global token 
         if token.recognized_string == '(':
             token = self.get_token()
-            self.condition()
+            condition = self.condition()
 
             if token.recognized_string == ')':
+                backpatch(condition.true,nextQuad())
                 token=self.get_token()
-                self.statements()        
-    
+                self.statements()
+                genQuad('jump','_','_',condQuad)        
+                backpatch(condition.false,nextQuad())
             else:
                 self.error('MissingCloseParen')
         else:
@@ -318,16 +326,22 @@ class Parser:
 
     def switchcaseStat(self):
         # print('switchcaseStat')
+        exitList=emptyList()
         global token 
         while(token.recognized_string == 'case'):
             token = self.get_token()
             if token.recognized_string == '(':
                 token = self.get_token()
-                self.condition()
+                condition = self.condition()
+                backpatch(condition.true,nextQuad())
             
                 if token.recognized_string == ')':
                         token = self.get_token()
                         self.statements()
+                        t=makeList(nextQuad)
+                        genQuad('jump','_','_','_')
+                        exitList=mergeList(exitList,t)
+                        backpatch=(condition.false,nextQuad())
                 else:
                     self.error('MissingCloseParen')
 
@@ -336,16 +350,20 @@ class Parser:
 
     def forcaseStat(self):
         # print('forcaseStat')
+        firstCondQuad = nextQuad()
         global token 
         while(token.recognized_string == 'case'):
             token = self.get_token()
             if token.recognized_string == '(':
                 token = self.get_token()
-                self.condition()
+                condition = self.condition()
            
                 if token.recognized_string == ')':
+                    backpatch(condition.true,nextQuad())
                     token = self.get_token()
                     self.statements()
+                    genQuad('jump','_','_','_')
+                    backpatch(condition.false,nextQuad())
                 else:
                      self.error('MissingCloseParen')
  
@@ -361,16 +379,22 @@ class Parser:
 
     def incaseStat(self):
         # print('incaseStat')
+        flag = newTemp()
+        firstCondQuad = nextQuad()
+        genQuad(':=',0,'_',flag)
         global token 
         while(token.recognized_string == 'case'):
             token = self.get_token()
             if token.recognized_string == '(':
                 token = self.get_token()
-                self.condition()
+                condition=self.condition()
            
                 if token.recognized_string == ')':
+                    backpatch(condition.true,nextQuad())
                     token = self.get_token()
                     self.statements()
+                    genQuad(':=',1,'_',flag)
+                    backpatch(condition.false,nextQuad())
                 else:
                      self.error('MissingCloseParen')
  
@@ -607,19 +631,34 @@ class Parser:
     def condition(self):
         # print('condition')
         global token
+        boolterm = self.boolterm()
         self.boolterm()
+        condition = Bool_List()
+        condition.true = boolterm.true
+        condition.false = boolterm.false
         while token.recognized_string == 'or':
+            backpatch(condition.false,nextQuad())
             token = self.get_token()
             self.boolterm()
+            condition.true = mergeList(condition.true,boolterm.true)
+            condition.false = boolterm.false
 
     def boolterm (self):
         # print('boolterm ')
         global token 
-        self.boolfactor()
+        boolfactor = self.boolfactor()
+        boolterm.true = boolfactor.true
+        boolterm.false = boolfactor.false
         while token.recognized_string == 'and':
+            backpatch(boolterm.true,nextQuad())
             token = self.get_token()
-            self.boolfactor()       
-    
+            self.boolfactor()
+            boolterm = Bool_List()
+            boolterm.false = mergeList(boolterm.false,boolfactor.false)       
+            boolterm.true = boolfactor.true
+
+        return boolterm    
+            
     def boolfactor(self):
         # print('boolfactor')
         global token
@@ -627,9 +666,11 @@ class Parser:
             token = self.get_token()
             if token.recognized_string == '[':
                 token = self.get_token()
-                self.condition()
+                condition =self.condition()
                 if (token.recognized_string != ']'):
-                    self.error('MissingCloseBracket')     
+                    self.error('MissingCloseBracket')
+                boolfactor.true = condition.false
+                boolfactor.false = condition.true         
                 token = self.get_token()
             else:
                 self.error('MissingOpenBracket')           
@@ -638,7 +679,9 @@ class Parser:
                 token = self.get_token()
                 self.condition()
                 if (token.recognized_string != ']'):
-                    self.error('MissingCloseBracket')   
+                    self.error('MissingCloseBracket')
+                boolfactor.true = condition.false
+                boolfactor.false = condition.false       
                 token = self.get_token()
         
 
@@ -649,7 +692,14 @@ class Parser:
                 token = self.get_token()
             else:
                 self.error('MissingRelOperator')
-            self.expression()      
+            self.expression()
+            boolfactor = Bool_List()
+            boolfactor.true = makeList(nextQuad())
+            genQuad('relOperator',expression.place,expression.place,'_')
+            boolfactor.false = makeList(nextQuad())
+            genQuad('jump','_','_','_')
+            return boolfactor
+                 
         
     def expression(self):
         # print('expression')
@@ -850,16 +900,25 @@ class Quad :
     def get_label(self):
         return self.label
 
+
+class Bool_List:
+    def __init__(self, true, false):
+        # two lists 
+        self.true = true
+        self.false = false
+
+
+
 class QuadPointer : # TODO: maybe delete no use?
+
     def __init__(self, label, quad):
         self.label = label
         self.quad = quad
     
     def get_quad(self):
         return self.quad
+
     
-
-
 # helper routines
 
 quad_list = [] # global list that keeps all quad objects
@@ -890,6 +949,7 @@ def backpatch(list, label):
         quad_to_complete = searchQuad(label) # search the quad object with a certain label number
         quad_to_complete.set_op3(label) # complete the quad's last operand with the updated label
 
+
 def makeList(label):
     new_list = [label]
     return new_list
@@ -898,9 +958,11 @@ def mergeList(list1,list2):
     list = list1.extend(list2)    
     return list
 
+
 def emptyList():
     new_list = []
     return new_list
+
         
 name = sys.argv[1] # get command line argument
 token = Token(None, None, 1)
