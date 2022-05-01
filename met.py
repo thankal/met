@@ -584,9 +584,9 @@ class Parser:
     def boolterm (self):
         # print('boolterm ')
         global token 
-        self.boolfactor()
+        boolfactor = self.boolfactor()
         boolterm.true = boolfactor.true
-        boolterm.false = boolterm.false
+        boolterm.false = boolfactor.false
         while token.recognized_string == 'and':
             backpatch(boolterm.true,nextQuad())
             token = self.get_token()
@@ -628,10 +628,12 @@ class Parser:
             else:
                 self.error('MissingRelOperator')
             self.expression()
+            boolfactor = Bool_List()
             boolfactor.true = makeList(nextQuad())
             genQuad('relOperator',expression.place,expression.place,'_')
             boolfactor.false = makeList(nextQuad())
             genQuad('jump','_','_','_')
+            return boolfactor
                  
         
     def expression(self):
@@ -799,6 +801,12 @@ class Quad :
 
     def get_label(self):
         return self.label
+
+class Bool_List:
+    def __init__(self, true, false):
+        # two lists 
+        self.true = true
+        self.false = false
     
 
 
