@@ -397,6 +397,7 @@ class Parser:
         flag = newTemp()
         firstCondQuad = nextQuad()
         genQuad(':=',0,'_',flag)
+
         global token 
         while(token.recognized_string == 'case'):
             token = self.get_token()
@@ -406,8 +407,10 @@ class Parser:
            
                 if token.recognized_string == ')':
                     backpatch(condition.true,nextQuad())
+
                     token = self.get_token()
                     self.statements()
+
                     genQuad(':=',1,'_',flag)
                     backpatch(condition.false,nextQuad())
                 else:
