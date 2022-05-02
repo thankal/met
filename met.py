@@ -431,10 +431,11 @@ class Parser:
         global token 
         if token.recognized_string == '(':
             token = self.get_token()
-            self.expression()
+            e_place = self.expression()
             if token.recognized_string != ')':
                 self.error('MissingCloseParen')
             token = self.get_token()
+            genQuad('ret', e_place, '_', '_')
         else:
             self.error('MissingOpenParen')
 
@@ -447,12 +448,12 @@ class Parser:
             self.error('MissingId')
         global name
         name = token.recognized_string
+        genQuad("call", name, "_", "_")
 
         token = self.get_token()
         if token.recognized_string == '(':
             token = self.get_token()
             self.actualparlist()
-            genQuad("call", name, "_", "_")
             if token.recognized_string != ')':
                 self.error('MissingCloseParen')
             token = self.get_token()
@@ -515,8 +516,9 @@ class Parser:
             token = self.get_token()
             self.declarations()
             self.subprograms()
-            # TODO: blockstatements or block?
+
             genQuad("begin_block", name, "_", "_")
+            # TODO: blockstatements or block?
             self.blockstatements()
             genQuad("halt", "_", "_", "_") # the only differance to block()
             genQuad("end_block", name, "_", "_")
@@ -534,9 +536,9 @@ class Parser:
         if token.recognized_string == '{':
             token = self.get_token()
             self.declarations()
+            genQuad("begin_block", name, "_", "_")
             self.subprograms()
             # TODO: blockstatements or block?
-            genQuad("begin_block", name, "_", "_")
             self.blockstatements()
             genQuad("end_block", name, "_", "_")
             # print('back at block')
@@ -565,8 +567,7 @@ class Parser:
                 self.error('MissingInInoutdId')
             token = self.get_token()        
         else:
-            self.error('MissingInInout')        			    
-
+            self.error('MissingInInout')     
 
     def statements(self):
         # print('statements')
@@ -732,10 +733,11 @@ class Parser:
         self.optionalSign()
         t1_place = self.term()
         while(token.family == 'addOperator'):
+            operator = token.recognized_string
             token = self.get_token()
             t2_place = self.term()      
             w = newTemp()
-            genQuad("+", t1_place, t2_place, w)
+            genQuad(operator, t1_place, t2_place, w)
             t1_place = w
         e_place = t1_place
         return e_place
@@ -797,8 +799,8 @@ class Parser:
             f_place = id_place # TODO: can be shortened f_place=self.idtail()
 
         elif token.family == 'number': 
-            token = self.get_token()
             f_place = token.recognized_string
+            token = self.get_token()
 
         else:
             self.error('MissingFactor')   
@@ -855,9 +857,8 @@ class Parser:
         global id
         if token.recognized_string == 'in':
             token = self.get_token()
-            self.expression()
-            # TODO: below; takes name but from where? it may be an expression... how to solve
-            genQuad("par", id, "cv", "_")
+            e_place = self.expression()
+            genQuad("par", e_place, "cv", "_")
         elif token.recognized_string == 'inout':
             token = self.get_token()
 
@@ -905,7 +906,7 @@ class Parser:
             else:
                 self.error('MissingId')  
 
-# intermediate code
+# intermediate code classes
 class Quad :
     def __init__(self, label, operator, op1, op2, target):
         self.label = label # so that we can identify different quads
@@ -915,9 +916,7 @@ class Quad :
         self.target = target
 
     def __str__(self):
-        return f"{self.label}, \
-                {self.operator}, \
-                {self.op1}, {self.op2}, {self.target}"
+        return f"{self.label}, {self.operator}, {self.op1}, {self.op2}, {self.target}"
     
     def set_target(self, target):
         self.target = target 
@@ -963,13 +962,14 @@ def searchQuad(label):
 
 def genQuad(operator, op1, op2, target):
     # create a new quad with the next label number
+    global label_number
     newQuad = Quad(label_number, operator, op1, op2, target)
+    label_number += 1;
     quad_list.append(newQuad) # add newly created quad to the list
 
 def nextQuad():
     global label_number
-    label_number += 1
-    return label_number
+    return label_number+1
 
 def newTemp():
     global temp_number
