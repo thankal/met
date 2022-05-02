@@ -3,10 +3,7 @@
 # Dimitrios Giannitsakis, 4338, cse84338
 
 from contextlib import redirect_stderr
-from logging import _Level
-import numbers
 import sys
-import io
 from unittest import result
 
 
@@ -17,11 +14,8 @@ delimeter = [',','.',';']
 groupSymbol= ['(',')','{','}','[',']']
 
 # used in intermediate code generation - class Quad
-label_number = 1 # a counter that keeps track of current quad label
+label_number = 0 # a counter that keeps track of current quad label
 temp_number = 1 # a counter that keeps track of current temporary variable number
-name = "" # used as a placeholder for block names
-id = "" # used as a placeholder for function and variable names
-res = 0 # used as a placeholder for the result of expressions
 
 class Token:
     def __init__(self, recognized_string, family, line_number):
@@ -276,6 +270,9 @@ class Parser:
         
         elif (type == 'MissingFactor'):
             print(f"Expected factor in line {token.line_number} but instead got '{token.recognized_string}'")
+
+        elif (type == 'MissingId'):
+            print(f"id expected before symbol '{token.recognized_string}' in line {token.line_number}")
         exit(-1)   
 
     def ifStat(self):
@@ -344,7 +341,7 @@ class Parser:
                         token = self.get_token()
                         self.statements()
 
-                        t = makeList(nextQuad)
+                        t = makeList(nextQuad())
                         genQuad('jump', '_', '_', '_')
                         exitList = mergeList(exitList, t)
                         backpatch(condition.false, nextQuad())
@@ -432,10 +429,11 @@ class Parser:
         global token 
         if token.recognized_string == '(':
             token = self.get_token()
-            self.expression()
+            e_place = self.expression()
             if token.recognized_string != ')':
                 self.error('MissingCloseParen')
             token = self.get_token()
+            genQuad('ret', e_place, '_', '_')
         else:
             self.error('MissingOpenParen')
 
@@ -443,17 +441,15 @@ class Parser:
     def callStat(self):
         # print('callstat')
         global token 
-        token = self.get_token()
         if token.family != 'id':
             self.error('MissingId')
-        global name
         name = token.recognized_string
+        genQuad("call", name, "_", "_")
 
         token = self.get_token()
         if token.recognized_string == '(':
             token = self.get_token()
             self.actualparlist()
-            genQuad("call", name, "_", "_")
             if token.recognized_string != ')':
                 self.error('MissingCloseParen')
             token = self.get_token()
@@ -465,13 +461,12 @@ class Parser:
         global token 
         if token.recognized_string == '(':
             token = self.get_token()
-            self.expression()
-            global res
+            e_place = self.expression()
             # res = self.expression() ; the result of the expression TODO
             if token.recognized_string != ')':
                 self.error('MissingCloseParen')
             token = self.get_token()
-            genQuad("out", res, "_", "_") # TODO: what res?
+            genQuad("out", e_place, "_", "_")
         else:
             self.error('MissingOpenParen')
 
@@ -509,15 +504,16 @@ class Parser:
             
              
     
-    def program_block(self):
+    def program_block(self, name):
         # print('block')
         global token 
         if token.recognized_string == '{':
             token = self.get_token()
             self.declarations()
             self.subprograms()
-            # TODO: blockstatements or block?
+
             genQuad("begin_block", name, "_", "_")
+            # TODO: blockstatements or block?
             self.blockstatements()
             genQuad("halt", "_", "_", "_") # the only differance to block()
             genQuad("end_block", name, "_", "_")
@@ -529,15 +525,16 @@ class Parser:
         else: 
             self.error('MissingOpenCurlyBracket')       
 
-    def block(self):
+    def block(self, name):
         # print('block')
         global token 
         if token.recognized_string == '{':
             token = self.get_token()
             self.declarations()
             self.subprograms()
-            # TODO: blockstatements or block?
+
             genQuad("begin_block", name, "_", "_")
+            # TODO: blockstatements or block?
             self.blockstatements()
             genQuad("end_block", name, "_", "_")
             # print('back at block')
@@ -566,8 +563,7 @@ class Parser:
                 self.error('MissingInInoutdId')
             token = self.get_token()        
         else:
-            self.error('MissingInInout')        			    
-
+            self.error('MissingInInout')     
 
     def statements(self):
         # print('statements')
@@ -637,62 +633,63 @@ class Parser:
              self.printStat()
 
         elif token.family == 'id':
+            id = token.recognized_string
             token = self.get_token()
-            self.assignStat()
+            self.assignStat(id)
 
         
                 
-    def assignStat(self):
+    def assignStat(self, id):
         # print('assignStat')
         global token 
         if (token.family == 'assignment'):
             token = self.get_token()
-            self.expression()
-            global res
-            # TODO: what is res? arithmetic expressions pending
-            genQuad(":=", res, "_", "_")
+            e_place = self.expression()
+            genQuad(":=", e_place, "_", id)
         else:
             self.error('MissingAssignment') 
 
     def condition(self):
         # print('condition')
         global token
-        boolterm = self.boolterm()
-        self.boolterm()
+        boolterm1 = self.boolterm()
+        # self.boolterm()
         condition = Bool_List()
-        condition.true = boolterm.true
-        condition.false = boolterm.false
+        condition.true = boolterm1.true
+        condition.false = boolterm1.false
         while token.recognized_string == 'or':
-            backpatch(condition.false,nextQuad())
+            backpatch(condition.false, nextQuad())
             token = self.get_token()
-            self.boolterm()
-            condition.true = mergeList(condition.true,boolterm.true)
-            condition.false = boolterm.false
+            boolterm2 = self.boolterm()
+            condition.true = mergeList(condition.true, boolterm2.true)
+            condition.false = boolterm2.false
+        return condition
 
     def boolterm (self):
         # print('boolterm ')
         global token 
-        boolfactor = self.boolfactor()
+        boolfactor1 = self.boolfactor()
         boolterm = Bool_List()
-        boolterm.true = boolfactor.true
-        boolterm.false = boolfactor.false
+        boolterm.true = boolfactor1.true
+        boolterm.false = boolfactor1.false
         while token.recognized_string == 'and':
             backpatch(boolterm.true,nextQuad())
             token = self.get_token()
-            self.boolfactor()
-            boolterm.false = mergeList(boolterm.false,boolfactor.false)       
-            boolterm.true = boolfactor.true
+            boolfactor2 = self.boolfactor()
+            boolterm.false = mergeList(boolterm.false, boolfactor2.false)       
+            boolterm.true = boolfactor2.true
 
         return boolterm    
             
     def boolfactor(self):
         # print('boolfactor')
         global token
+        boolfactor = Bool_List()
         if token.recognized_string == 'not':
             token = self.get_token()
             if token.recognized_string == '[':
                 token = self.get_token()
-                condition =self.condition()
+                condition = self.condition()
                 if (token.recognized_string != ']'):
                     self.error('MissingCloseBracket')
                 boolfactor.true = condition.false
@@ -703,28 +700,27 @@ class Parser:
     
         elif token.recognized_string == '[':
                 token = self.get_token()
-                self.condition()
+                condition = self.condition()
                 if (token.recognized_string != ']'):
                     self.error('MissingCloseBracket')
-                boolfactor.true = condition.false
+                boolfactor.true = condition.true
                 boolfactor.false = condition.false       
                 token = self.get_token()
-        
 
         else:
-            self.expression()
+            e1_place = self.expression()
             
             if (token.family == 'relOperator'):
                 token = self.get_token()
             else:
                 self.error('MissingRelOperator')
-            e_place = self.expression()
-            boolfactor = Bool_List()
+            e2_place = self.expression()
             boolfactor.true = makeList(nextQuad())
-            genQuad('relOperator',e_place, e_place,'_')
+            genQuad('relOperator',e1_place, e2_place, '_')
             boolfactor.false = makeList(nextQuad())
             genQuad('jump','_','_','_')
-            return boolfactor
+
+        return boolfactor #TODO: was indented (inside else)
                  
         
     def expression(self):
@@ -733,10 +729,11 @@ class Parser:
         self.optionalSign()
         t1_place = self.term()
         while(token.family == 'addOperator'):
+            operator = token.recognized_string
             token = self.get_token()
             t2_place = self.term()      
             w = newTemp()
-            genQuad("+", t1_place, t2_place, w)
+            genQuad(operator, t1_place, t2_place, w)
             t1_place = w
         e_place = t1_place
         return e_place
@@ -761,11 +758,10 @@ class Parser:
         if token.recognized_string == 'program':
             token = self.get_token()
             if token.family == 'id':
-                global name 
                 name = token.recognized_string # keep block name to generate quad later
 
                 token = self.get_token()
-                self.program_block()
+                self.program_block(name)
                 if token.recognized_string == '.':
                     token = self.get_token()
                     if token.recognized_string == 'eof':
@@ -798,8 +794,8 @@ class Parser:
             f_place = id_place # TODO: can be shortened f_place=self.idtail()
 
         elif token.family == 'number': 
-            token = self.get_token()
             f_place = token.recognized_string
+            token = self.get_token()
 
         else:
             self.error('MissingFactor')   
@@ -822,7 +818,6 @@ class Parser:
         global token 
         if (token.recognized_string == 'function') or (token.recognized_string == 'procedure'):
             token = self.get_token()
-            global name
             name = token.recognized_string
 
             if token.family == 'id':
@@ -833,7 +828,7 @@ class Parser:
                     if token.recognized_string != ')':
                         self.error('MissingCloseParen')
                     token = self.get_token()
-                    self.block()
+                    self.block(name)
 
                 else:
                     self.error('MissingOpenParen')
@@ -853,12 +848,10 @@ class Parser:
     def actualparitem(self):
         # print('actualparitem')
         global token
-        global id
         if token.recognized_string == 'in':
             token = self.get_token()
-            self.expression()
-            # TODO: below; takes name but from where? it may be an expression... how to solve
-            genQuad("par", id, "cv", "_")
+            e_place = self.expression()
+            genQuad("par", e_place, "cv", "_")
         elif token.recognized_string == 'inout':
             token = self.get_token()
 
@@ -906,7 +899,7 @@ class Parser:
             else:
                 self.error('MissingId')  
 
-# intermediate code
+# intermediate code classes
 class Quad :
     def __init__(self, label, operator, op1, op2, target):
         self.label = label # so that we can identify different quads
@@ -916,9 +909,7 @@ class Quad :
         self.target = target
 
     def __str__(self):
-        return f"{self.label}, \
-                {self.operator}, \
-                {self.op1}, {self.op2}, {self.target}"
+        return f"{self.label}, {self.operator}, {self.op1}, {self.op2}, {self.target}"
     
     def set_target(self, target):
         self.target = target 
@@ -960,17 +951,22 @@ def searchQuad(label):
     for quad in quad_list:
         if quad.get_label() == label:
             return quad # return quad object
+    # should never get here!
+    print("Fatal error")
+    exit(-1)
 
 
 def genQuad(operator, op1, op2, target):
     # create a new quad with the next label number
+    global label_number
+    label_number += 1;
     newQuad = Quad(label_number, operator, op1, op2, target)
     quad_list.append(newQuad) # add newly created quad to the list
 
 def nextQuad():
     global label_number
-    label_number += 1
-    return label_number
+    temp = label_number + 1
+    return temp
 
 def newTemp():
     global temp_number
@@ -978,10 +974,10 @@ def newTemp():
     temp_number += 1
     return temp
 
-def backpatch(list, label):
-    for lbl in list:
+def backpatch(list, target):
+    for label in list:
         quad_to_complete = searchQuad(label) # search the quad object with a certain label number
-        quad_to_complete.set_target(label) # complete the quad's last operand with the updated label
+        quad_to_complete.set_target(target) # complete the quad's last operand with the updated target
 
 
 def makeList(label):
@@ -989,7 +985,7 @@ def makeList(label):
     return new_list
 
 def mergeList(list1,list2):
-    list = list1.extend(list2)    
+    list = list1 + list2    
     return list
 
 
@@ -1040,7 +1036,8 @@ class SymbolicConstant :
         self.value = value 
                 
         
-name = sys.argv[1] # get command line argument
+# name = sys.argv[1] # get command line argument
+name = "testparser.ci"
 token = Token(None, None, 1)
 lex = Lex(name, 1, token)
 parser = Parser(lex)
