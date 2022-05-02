@@ -376,7 +376,7 @@ class Parser:
                     token = self.get_token()
                     self.statements()
 
-                    genQuad('jump','_','_','_')
+                    genQuad('jump','_','_', firstCondQuad) # TODO: maybe wrong
                     backpatch(condition.false, nextQuad())
                 else:
                      self.error('MissingCloseParen')
@@ -387,7 +387,6 @@ class Parser:
         if(token.recognized_string == 'default'):
             token = self.get_token()
             self.statements()
-            backpatch(firstCondQuad, nextQuad()) # TODO: is ommited in pdf maybe correct?
         else:
             self.error('MissingDefault')
 
@@ -403,7 +402,7 @@ class Parser:
             token = self.get_token()
             if token.recognized_string == '(':
                 token = self.get_token()
-                condition=self.condition()
+                condition = self.condition()
            
                 if token.recognized_string == ')':
                     backpatch(condition.true,nextQuad())
@@ -418,6 +417,14 @@ class Parser:
  
             else:
                 self.error('MissingOpenParen')     
+
+        # added default statement 
+        if(token.recognized_string == 'default'):
+            genQuad('=', 1, flag, firstCondQuad)
+            token = self.get_token()
+            self.statements()
+        else:
+            self.error('MissingDefault')
 
     def returnStat(self):
         # print('returnStat')
