@@ -16,7 +16,6 @@ groupSymbol= ['(',')','{','}','[',']']
 # used in intermediate code generation - class Quad
 label_number = 0 # a counter that keeps track of current quad label
 temp_number = 1 # a counter that keeps track of current temporary variable number
-name = "" # used as a placeholder for block names
 
 class Token:
     def __init__(self, recognized_string, family, line_number):
@@ -444,7 +443,6 @@ class Parser:
         global token 
         if token.family != 'id':
             self.error('MissingId')
-        global name
         name = token.recognized_string
         genQuad("call", name, "_", "_")
 
@@ -506,7 +504,7 @@ class Parser:
             
              
     
-    def program_block(self):
+    def program_block(self, name):
         # print('block')
         global token 
         if token.recognized_string == '{':
@@ -527,14 +525,15 @@ class Parser:
         else: 
             self.error('MissingOpenCurlyBracket')       
 
-    def block(self):
+    def block(self, name):
         # print('block')
         global token 
         if token.recognized_string == '{':
             token = self.get_token()
             self.declarations()
-            genQuad("begin_block", name, "_", "_")
             self.subprograms()
+
+            genQuad("begin_block", name, "_", "_")
             # TODO: blockstatements or block?
             self.blockstatements()
             genQuad("end_block", name, "_", "_")
@@ -634,18 +633,19 @@ class Parser:
              self.printStat()
 
         elif token.family == 'id':
+            id = token.recognized_string
             token = self.get_token()
-            self.assignStat()
+            self.assignStat(id)
 
         
                 
-    def assignStat(self):
+    def assignStat(self, id):
         # print('assignStat')
         global token 
         if (token.family == 'assignment'):
             token = self.get_token()
             e_place = self.expression()
-            genQuad(":=", e_place, "_", "_")
+            genQuad(":=", e_place, "_", id)
         else:
             self.error('MissingAssignment') 
 
@@ -758,11 +758,10 @@ class Parser:
         if token.recognized_string == 'program':
             token = self.get_token()
             if token.family == 'id':
-                global name 
                 name = token.recognized_string # keep block name to generate quad later
 
                 token = self.get_token()
-                self.program_block()
+                self.program_block(name)
                 if token.recognized_string == '.':
                     token = self.get_token()
                     if token.recognized_string == 'eof':
@@ -819,7 +818,6 @@ class Parser:
         global token 
         if (token.recognized_string == 'function') or (token.recognized_string == 'procedure'):
             token = self.get_token()
-            global name
             name = token.recognized_string
 
             if token.family == 'id':
@@ -830,7 +828,7 @@ class Parser:
                     if token.recognized_string != ')':
                         self.error('MissingCloseParen')
                     token = self.get_token()
-                    self.block()
+                    self.block(name)
 
                 else:
                     self.error('MissingOpenParen')
