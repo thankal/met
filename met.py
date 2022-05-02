@@ -3,6 +3,7 @@
 # Dimitrios Giannitsakis, 4338, cse84338
 
 from contextlib import redirect_stderr
+from logging import _Level
 import numbers
 import sys
 import io
@@ -1000,6 +1001,44 @@ def emptyList():
 def print_quads(quad_list):
     for quad in quad_list:
         print(quad)
+
+class Entity :
+    def __init__(self,name):
+        self.name = name    
+
+class Scope :
+    def __init__(self,level):
+        self.level = level
+
+class Variable :
+   def __init__(self,name,datatype,offset):
+       self.name = name
+       self.datatype = datatype
+       self.offset = offset
+
+class Parameter(Variable) :
+     def __init__(self,name,datatype,mode,offset):
+        super().__init(name,datatype,offset)
+        self.mode = mode
+
+class Procedure :
+     def __init__(self,name,startingQuad,framelength,formalParameters):
+         self.name = name 
+         self.startingQuad = startingQuad
+         self.framelength = framelength
+         self.formalParameters = formalParameters
+         
+class Function(Procedure):
+    def __init__(self,name,datatype,startingQuad,framelength,formalParameters):
+        super().__init(name,startingQuad,framelength,formalParameters)
+        self.datatype = datatype
+
+class SymbolicConstant :
+    def __init__(self,name,datatype,value):
+        self.name = name
+        self.datatype = datatype 
+        self.value = value 
+                
         
 name = sys.argv[1] # get command line argument
 token = Token(None, None, 1)
