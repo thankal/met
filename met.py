@@ -907,20 +907,20 @@ class Parser:
 
 # intermediate code
 class Quad :
-    def __init__(self, label, operator, op1, op2, res):
+    def __init__(self, label, operator, op1, op2, target):
         self.label = label # so that we can identify different quads
         self.operator = operator
         self.op1 = op1
         self.op2 = op2
-        self.res = res
+        self.target = target
 
     def __str__(self):
         return f"{self.label}, \
                 {self.operator}, \
                 {self.op1}, {self.op2}, {self.op3}"
     
-    def set_op3(self, op3):
-        self.op3 = op3 
+    def set_target(self, target):
+        self.target = target 
 
     def get_label(self):
         return self.label
@@ -955,9 +955,9 @@ def searchQuad(label):
             return quad # return quad object
 
 
-def genQuad(operator, op1, op2, res):
+def genQuad(operator, op1, op2, target):
     # create a new quad with the next label number
-    newQuad = Quad(label_number, operator, op1, op2, res)
+    newQuad = Quad(label_number, operator, op1, op2, target)
     quad_list.add(newQuad) # add newly created quad to the list
 
 def nextQuad():
@@ -972,7 +972,7 @@ def newTemp():
 def backpatch(list, label):
     for lbl in list:
         quad_to_complete = searchQuad(label) # search the quad object with a certain label number
-        quad_to_complete.set_op3(label) # complete the quad's last operand with the updated label
+        quad_to_complete.set_target(label) # complete the quad's last operand with the updated label
 
 
 def makeList(label):
@@ -994,3 +994,10 @@ token = Token(None, None, 1)
 lex = Lex(name, 1, token)
 parser = Parser(lex)
 parser.syntax_analyzer() # run syntax analyzer
+
+
+# print the quad list
+def print_quads(quad_list):
+    for quad in quad_list:
+        print(quad + '\n')
+
