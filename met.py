@@ -285,14 +285,16 @@ class Parser:
                 condition = self.condition()
 
                 if token.recognized_string == ')':
-                    backpatch(condition.true,nextQuad())
-                    token=self.get_token()
+                    backpatch(condition.true, nextQuad())
+                    token = self.get_token()
                     self.statements()
+
                     ifList = makeList(nextQuad())
-                    genQuad('jump','_','_','_')
-                    backpatch(condition.false,nextQuad())
+                    genQuad('jump', '_', '_', '_')
+                    backpatch(condition.false, nextQuad())
+
                     self.elsepart()
-                    backpatch(ifList,nextQuad())
+                    backpatch(ifList, nextQuad())
                 else:
                     self.error('MissingCloseParen')      
         else:
@@ -314,11 +316,12 @@ class Parser:
             condition = self.condition()
 
             if token.recognized_string == ')':
-                backpatch(condition.true,nextQuad())
-                token=self.get_token()
+                backpatch(condition.true, nextQuad())
+                token = self.get_token()
                 self.statements()
                 genQuad('jump','_','_',condQuad)        
-                backpatch(condition.false,nextQuad())
+                backpatch(condition.false, nextQuad())
+
             else:
                 self.error('MissingCloseParen')
         else:
@@ -326,27 +329,37 @@ class Parser:
 
     def switchcaseStat(self):
         # print('switchcaseStat')
-        exitList=emptyList()
+        exitList = emptyList()
+
         global token 
         while(token.recognized_string == 'case'):
             token = self.get_token()
             if token.recognized_string == '(':
                 token = self.get_token()
                 condition = self.condition()
-                backpatch(condition.true,nextQuad())
             
                 if token.recognized_string == ')':
+                        backpatch(condition.true, nextQuad())
                         token = self.get_token()
                         self.statements()
-                        t=makeList(nextQuad)
-                        genQuad('jump','_','_','_')
-                        exitList=mergeList(exitList,t)
-                        backpatch=(condition.false,nextQuad())
+
+                        t = makeList(nextQuad)
+                        genQuad('jump', '_', '_', '_')
+                        exitList = mergeList(exitList, t)
+                        backpatch(condition.false, nextQuad())
                 else:
                     self.error('MissingCloseParen')
 
             else:
                 self.error('MissingOpenParen')
+
+        if(token.recognized_string == 'default'):
+            token = self.get_token()
+            self.statements()
+            backpatch(exitList, nextQuad())
+        else:
+            self.error('MissingDefault')
+
 
     def forcaseStat(self):
         # print('forcaseStat')
@@ -359,11 +372,12 @@ class Parser:
                 condition = self.condition()
            
                 if token.recognized_string == ')':
-                    backpatch(condition.true,nextQuad())
+                    backpatch(condition.true, nextQuad())
                     token = self.get_token()
                     self.statements()
+
                     genQuad('jump','_','_','_')
-                    backpatch(condition.false,nextQuad())
+                    backpatch(condition.false, nextQuad())
                 else:
                      self.error('MissingCloseParen')
  
@@ -373,6 +387,7 @@ class Parser:
         if(token.recognized_string == 'default'):
             token = self.get_token()
             self.statements()
+            backpatch(firstCondQuad, nextQuad()) # TODO: is ommited in pdf maybe correct?
         else:
             self.error('MissingDefault')
 
@@ -382,6 +397,7 @@ class Parser:
         flag = newTemp()
         firstCondQuad = nextQuad()
         genQuad(':=',0,'_',flag)
+
         global token 
         while(token.recognized_string == 'case'):
             token = self.get_token()
@@ -391,8 +407,10 @@ class Parser:
            
                 if token.recognized_string == ')':
                     backpatch(condition.true,nextQuad())
+
                     token = self.get_token()
                     self.statements()
+
                     genQuad(':=',1,'_',flag)
                     backpatch(condition.false,nextQuad())
                 else:
@@ -692,10 +710,10 @@ class Parser:
                 token = self.get_token()
             else:
                 self.error('MissingRelOperator')
-            self.expression()
+            e_place = self.expression()
             boolfactor = Bool_List()
             boolfactor.true = makeList(nextQuad())
-            genQuad('relOperator',expression.place,expression.place,'_')
+            genQuad('relOperator',e_place, e_place,'_')
             boolfactor.false = makeList(nextQuad())
             genQuad('jump','_','_','_')
             return boolfactor
