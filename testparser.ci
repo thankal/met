@@ -91,6 +91,7 @@ program TestCimpleParser
 			x := x - 50;
 		case(y >= 200)
 			x := x - 500;
+		default;
 	;
 	
 	print(1+2-(x+y)+funct2( in i, inout j)-35*105);

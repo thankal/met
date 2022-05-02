@@ -341,7 +341,7 @@ class Parser:
                         token = self.get_token()
                         self.statements()
 
-                        t = makeList(nextQuad)
+                        t = makeList(nextQuad())
                         genQuad('jump', '_', '_', '_')
                         exitList = mergeList(exitList, t)
                         backpatch(condition.false, nextQuad())
