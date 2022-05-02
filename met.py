@@ -711,12 +711,13 @@ class Parser:
             e1_place = self.expression()
             
             if (token.family == 'relOperator'):
+                relOperator = token.recognized_string
                 token = self.get_token()
             else:
                 self.error('MissingRelOperator')
             e2_place = self.expression()
             boolfactor.true = makeList(nextQuad())
-            genQuad('relOperator',e1_place, e2_place, '_')
+            genQuad(relOperator, e1_place, e2_place, '_')
             boolfactor.false = makeList(nextQuad())
             genQuad('jump','_','_','_')
 
