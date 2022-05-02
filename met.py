@@ -672,13 +672,13 @@ class Parser:
         # print('boolterm ')
         global token 
         boolfactor = self.boolfactor()
+        boolterm = Bool_List()
         boolterm.true = boolfactor.true
         boolterm.false = boolfactor.false
         while token.recognized_string == 'and':
             backpatch(boolterm.true,nextQuad())
             token = self.get_token()
             self.boolfactor()
-            boolterm = Bool_List()
             boolterm.false = mergeList(boolterm.false,boolfactor.false)       
             boolterm.true = boolfactor.true
 
@@ -852,6 +852,7 @@ class Parser:
     def actualparitem(self):
         # print('actualparitem')
         global token
+        global id
         if token.recognized_string == 'in':
             token = self.get_token()
             self.expression()
@@ -860,7 +861,6 @@ class Parser:
         elif token.recognized_string == 'inout':
             token = self.get_token()
 
-            global id
             id = token.recognized_string
             # TODO: add genQuad(par, T_x, ret, _) functionality in case of :=
             genQuad("par", id, "ref", "_")
@@ -917,7 +917,7 @@ class Quad :
     def __str__(self):
         return f"{self.label}, \
                 {self.operator}, \
-                {self.op1}, {self.op2}, {self.op3}"
+                {self.op1}, {self.op2}, {self.target}"
     
     def set_target(self, target):
         self.target = target 
@@ -927,10 +927,16 @@ class Quad :
 
 
 class Bool_List:
-    def __init__(self, true, false):
+    def __init__(self):
         # two lists 
-        self.true = true
-        self.false = false
+        self.true = []
+        self.false = []
+
+    # TODO : delete
+    # def __init__(self, true, false):
+    #     # two lists 
+    #     self.true = true
+    #     self.false = false
 
 
 
@@ -958,14 +964,16 @@ def searchQuad(label):
 def genQuad(operator, op1, op2, target):
     # create a new quad with the next label number
     newQuad = Quad(label_number, operator, op1, op2, target)
-    quad_list.add(newQuad) # add newly created quad to the list
+    quad_list.append(newQuad) # add newly created quad to the list
 
 def nextQuad():
+    global label_number
     label_number += 1
     return label_number
 
 def newTemp():
-    temp = 'T_' + temp_number
+    global temp_number
+    temp = 'T_' + str(temp_number)
     temp_number += 1
     return temp
 
@@ -988,6 +996,10 @@ def emptyList():
     new_list = []
     return new_list
 
+# print the quad list
+def print_quads(quad_list):
+    for quad in quad_list:
+        print(quad)
         
 name = sys.argv[1] # get command line argument
 token = Token(None, None, 1)
@@ -995,9 +1007,6 @@ lex = Lex(name, 1, token)
 parser = Parser(lex)
 parser.syntax_analyzer() # run syntax analyzer
 
+print_quads(quad_list)
 
-# print the quad list
-def print_quads(quad_list):
-    for quad in quad_list:
-        print(quad + '\n')
 
