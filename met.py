@@ -1036,73 +1036,76 @@ class SymbolicConstant :
         self.value = value 
 
 def createCcode(quad_list):
-    L = ["int main()","{"]
+    L = ['int main()\n','{\n','']
+    parameters = []
+
     for quad in quad_list:
-      temp = f"L_{quad.label}"
+        temp = f"\tL_{quad.label}: "
 
-      if(quad.operator == "+"):
-          temp += f"{quad.target} = {quad.op1} + {quad.op2}"
-          print(f"{quad.target} = {quad.op1} + {quad.op2}")
+        if(quad.operator == "+"):
+            temp += f"{quad.target} = {quad.op1} + {quad.op2}"
 
-      elif(quad.operator == '-'):
-          temp += f"{quad.target} = {quad.op1} - {quad.op2}"
-          print(f"{quad.target} = {quad.op1} - {quad.op2}")
+        elif(quad.operator == '-'):
+            temp += f"{quad.target} = {quad.op1} - {quad.op2}"            
 
-      elif(quad.operator == '*'):
-          temp += f"{quad.target} = {quad.op1} * {quad.op2}"
-          print(f"{quad.target} = {quad.op1} * {quad.op2}")
+        elif(quad.operator == '*'):
+            temp += f"{quad.target} = {quad.op1} * {quad.op2}"
 
-      elif(quad.operator == '/'):
-          temp += f"{quad.target} = {quad.op1} / {quad.op2}"    
-          print(f"{quad.target} = {quad.op1} / {quad.op2}")
+        elif(quad.operator == '/'):
+            temp += f"{quad.target} = {quad.op1} / {quad.op2}"    
 
-      elif(quad.operator == ':='):
-          temp += f"{quad.target} = {quad.op1}" 
-          print(f"{quad.target} = {quad.op1}")
+        elif(quad.operator == ':='):
+            temp += f"{quad.target} = {quad.op1}" 
 
-      elif(quad.operator == '='):
-          temp += f"{quad.op1} = {quad.op2}"
-          print(f"if ({quad.op1} = {quad.op2}) goto {quad.target}")    
+        elif(quad.operator == '='):
+            temp += f"{quad.op1} = {quad.op2}"
 
-      elif(quad.operator == '>'):
-          temp += f"{quad.op1} > {quad.op2}"
-          print(f"if ({quad.op1} > {quad.op2}) goto {quad.target}" )
-          
-      elif(quad.operator == '<'):
-          temp += f"{quad.op1} < {quad.op2}"
-          print(f"if ({quad.op1} < {quad.op2}) goto {quad.target} ")
+        elif(quad.operator == '>'):
+            temp += f"{quad.op1} > {quad.op2}"
+            
+        elif(quad.operator == '<'):
+            temp += f"{quad.op1} < {quad.op2}"
 
-      elif(quad.operator == '<>'):
-          temp += f"{quad.op1} != {quad.op2}"
-          print(f"if ({quad.op1} != {quad.op2}) goto {quad.target} ")
+        elif(quad.operator == '<>'):
+            temp += f"{quad.op1} != {quad.op2}"
 
-      elif(quad.operator == '>='):
-          temp += f"{quad.op1} >= {quad.op2}"
-          print(f"if ({quad.op1} >= {quad.op2}) goto {quad.target}" )
+        elif(quad.operator == '>='):
+            temp += f"{quad.op1} >= {quad.op2}"
 
-      elif(quad.operator == '<='):
-          temp += f"{quad.op1} <= {quad.op2}"
-          print(f"if ({quad.op1} <= {quad.op2}) goto {quad.target} ")
-              
-      elif(quad.operator == 'jump'):
-          temp += f"goto L_{quad.target}"
-          print(f"goto L_{quad.target}")
+        elif(quad.operator == '<='):
+            temp += f"{quad.op1} <= {quad.op2}"
+                
+        elif(quad.operator == 'jump'):
+            temp += f"goto L_{quad.target}"
 
-      elif(quad.operator == 'in'):
-          temp += f"{quad.op1}"
-          print(f"scanf {quad.op1}")    
+        elif(quad.operator == 'in'):
+            temp += f"{quad.op1}"
 
-      elif(quad.operator == 'out'):
-          temp += f"{quad.op1}"
-          print(f"printf {quad.op1}")
+        elif(quad.operator == 'out'):
+            temp += f"{quad.op1}"
 
-      elif(quad.operator == 'retv'):
-         temp += f"{quad.op1}"
-         print(f"return {quad.op1}")  
+        elif(quad.operator == 'ret'):
+            temp += f"{quad.op1}"
 
-      elif(quad.operator == 'halt'):
-          print("{}")  
-                      
+        elif(quad.operator == 'halt'):
+            temp +=f"[] "          
+
+        elif(quad.operator == 'par'):
+            parameters.append(quad.op1)
+
+        elif(quad.operator == 'call'):
+            temp += f"{quad.op1}"
+            print(f": {quad.op1}(")
+            for par in parameters[1::-1]:
+                temp += (f"{par}, ")
+            temp += f"{parameters[0]});"
+
+        L.append(temp)
+
+    # print List L            
+    for x in L:
+        print(f"{x}\n")        
+      
         
 # name = sys.argv[1] # get command line argument
 name = "testparser.ci"
