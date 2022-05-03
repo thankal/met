@@ -1074,8 +1074,9 @@ def createCcode(quad_list):
             temp += f"if ({quad.op1} >= {quad.op2}) goto {quad.target}"
 
         elif(quad.operator == '<='):
+
             temp += f"if ({quad.op1} <= {quad.op2}) goto {quad.target}"
-                
+          
         elif(quad.operator == 'jump'):
             temp += f"goto L_{quad.target}"
 
@@ -1107,7 +1108,6 @@ def createCcode(quad_list):
     # print List L            
     for x in L:
         print(f"{x}\n")        
-      
         
 # name = sys.argv[1] # get command line argument
 name = "testparser.ci"
