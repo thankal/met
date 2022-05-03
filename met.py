@@ -497,28 +497,30 @@ class Parser:
     def declarations(self):
         # print('declarations')
         global token 
-        while (token.recognized_string == 'declare') :
-            token = self.get_token()
-            self.varlist()
-            if(token.recognized_string != ';'):
-                self.error('MissingQuestionMark')
-            token = self.get_token()
+        while (token.recognized_string == 'declare' or token.recognized_string == 'const'):
+            if (token.recognized_string == 'declare') :
+                token = self.get_token()
+                self.varlist()
+                if(token.recognized_string != ';'):
+                    self.error('MissingQuestionMark')
+                token = self.get_token()
 
-        while (token.recognized_string == 'const') :
-            token = self.get_token()
-            if token.family != 'id':
-                self.error('MissingId')
-            token = self.get_token()
-            if (token.family != 'assignment'):
-                self.error('MissingAssignment') 
-            token = self.get_token()
-            if (token.family != 'number'):
-                print(f"Expected number but instead got{token.recognized_string} in line {token.line_number}")
-                exit(-1)
-
-            if(token.recognized_string != ';'):
-                self.error('MissingQuestionMark')
-            token = self.get_token()
+            # added feature; check for constant initialization
+            if (token.recognized_string == 'const') :
+                token = self.get_token()
+                if token.family != 'id':
+                    self.error('MissingId')
+                token = self.get_token()
+                if (token.family != 'assignment'):
+                    self.error('MissingAssignment') 
+                token = self.get_token()
+                if (token.family != 'number'):
+                    print(f"Expected number but instead got{token.recognized_string} in line {token.line_number}")
+                    exit(-1)
+                token = self.get_token()
+                if(token.recognized_string != ';'):
+                    self.error('MissingQuestionMark')
+                token = self.get_token()
             
              
     
@@ -1147,7 +1149,7 @@ class Parameter(FormalParameter) :
                 
         
 # name = sys.argv[1] # get command line argument
-name = "testparser.ci"
+name = "symbol_test.ci"
 token = Token(None, None, 1)
 lex = Lex(name, 1, token)
 parser = Parser(lex)

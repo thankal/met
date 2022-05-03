@@ -1,13 +1,13 @@
 program symbol
 {
-    const A:=1;
+    const A := 1;
     declare a,b,c;
 
     procedure P1(in x, inout y)
     {
         declare a;
 
-        function F11(in x);
+        function F11(in x)
         {
             declare a;
             # body of F11 #
@@ -39,4 +39,4 @@ program symbol
     # main program #
     call P1(in a, inout b);
     call P2(in c);
-}
+}.
