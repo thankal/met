@@ -2,6 +2,8 @@
 # Athanasios Kalyviotis, 4607, cse84607
 # Dimitrios Giannitsakis, 4338, cse84338
 
+from asyncio import new_event_loop
+from asyncore import write
 from contextlib import redirect_stderr
 import sys
 from unittest import result
@@ -213,7 +215,7 @@ class Parser:
 
     def get_token(self):
         next_token = self.lexical_analyzer.next_token()
-        print (next_token)
+        # print (next_token) # TODO: only for debugging purposes
         return next_token # get the next token
 
     def error(self, type):
@@ -711,12 +713,13 @@ class Parser:
             e1_place = self.expression()
             
             if (token.family == 'relOperator'):
+                relOperator = token.recognized_string
                 token = self.get_token()
             else:
                 self.error('MissingRelOperator')
             e2_place = self.expression()
             boolfactor.true = makeList(nextQuad())
-            genQuad('relOperator',e1_place, e2_place, '_')
+            genQuad(relOperator, e1_place, e2_place, '_')
             boolfactor.false = makeList(nextQuad())
             genQuad('jump','_','_','_')
 
@@ -998,42 +1001,122 @@ def print_quads(quad_list):
     for quad in quad_list:
         print(quad)
 
-class Entity :
-    def __init__(self,name):
+# write all quads to a .int file
+def export_quads(quad_list):
+    intermediate_file = open('test.int', 'w')
+    for quad in quad_list:
+        intermediate_file.write(str(quad)+'\n')
+    intermediate_file.close()
+
+
+# symbol table classes
+class Table:
+    def __init__(self):
+        self.scope_list = [] # initialize a list of scopes
+    
+    # add a new entity to the current scope
+    def addEntity(self, name):
+        self.scope_list[-1].addEntity(name) # add a new entity on the uppermost scope 
+    
+    # add a new level(scope) to the table
+    def addLevel(self):
+        new_scope = Scope(self)
+        self.scope_list.append(new_scope)
+
+        global level_counter
+        level_counter += 1 # created a new level, increment the counter
+
+    # remove a level(scope) from the table
+    def removeLevel(self):
+        self.scope_list.pop(-1) # pop the last element of the scope_list
+
+        global level_counter
+        level_counter -= 1 # removed a new level, decrement the counter
+
+    # update framelength and startingQuad fields in function or procedure entity
+    def updateFields(self, framelength, startingQuad):
+        self.scope_list[-1].updateFields(framelength, startingQuad)
+
+    # add a new formal parameter to the function or procedure entity
+    def addFormalParameter(self, formal_parameter):
+        self.scope_list[-1].addFormalParameter(formal_parameter)
+
+    # search for an entity based on name
+    def searchEntity(self, name):
+        for scope in self.scope_list[::-1]: # search in each level starting from the uppermost level to the lower ones
+            scope.searchEntity(name)
+
+        # if execution reaches this point it means entity was not found; throw an exception
+        print(f"Entity with name {name} was not found.")
+        exit(-1)
+
+
+level_counter = 0 # keeps track of the current scope level
+
+class Scope:
+    def __init__(self):
+        self.level = level_counter
+        self.entity_list = [] # initialize a list of entities
+    
+    def addEntity(self, name):
+        new_entity = Entity(name)
+        self.entity_list.append(new_entity) # add a new entity in the current scope
+
+    def updateFields(self, framelength, startingQuad):
+        self.entity_list[-1].updateFields(framelength, startingQuad) # TODO: maybe not the last entity?
+
+    def addFormalParameter(self, formal_parameter):
+        self.entity_list[-1].addFormalParameter(formal_parameter) # TODO: maybe not the last one?
+
+    def searchEntity(self, name):
+        for e in self.entity_list:
+            if (e.name == name):
+                return e
+
+class Entity:
+    def __init__(self, name):
         self.name = name    
+    
+    def updateFields(self, framelength, startingQuad):
+        self.framelength = framelength
+        self.startingQuad = startingQuad
 
-class Scope :
-    def __init__(self,level):
-        self.level = level
+    def addFormalParameter(self, formal_parameter):
+        self.formal_parameter = formal_parameter
 
-class Variable :
-   def __init__(self,name,datatype,offset):
-       self.name = name
+
+class Variable(Entity):
+   def __init__(self, name, datatype, offset):
+       super().__init__(name)
        self.datatype = datatype
        self.offset = offset
 
-class Parameter(Variable) :
-     def __init__(self,name,datatype,mode,offset):
-        super().__init(name,datatype,offset)
-        self.mode = mode
+class TemporaryVariable(Variable):
+    def __init__(self, name, datatype, offset):
+        super().__init__(name, datatype, offset)
 
-class Procedure :
-     def __init__(self,name,startingQuad,framelength,formalParameters):
-         self.name = name 
-         self.startingQuad = startingQuad
-         self.framelength = framelength
-         self.formalParameters = formalParameters
+class Constant(Entity):
+    def __init__(self, name, datatype, value):
+        super().__init__(name)
+        self.datatype = datatype # TODO: del not needed in cimple
+        self.value = value 
+
+class Procedure(Entity):
+    def __init__(self, name, startingQuad, framelength):
+        super().__init__(name)
+        self.startingQuad = startingQuad
+        self.framelength = framelength
+        self.formalParameters = [] # a list with all formal parameters
+    
+    def addFormalParameter(self, formal_parameter):
+        self.formalParameters.append(formal_parameter) # add the new formal parameter to the list of parameters
          
 class Function(Procedure):
-    def __init__(self,name,datatype,startingQuad,framelength,formalParameters):
-        super().__init(name,startingQuad,framelength,formalParameters)
+    def __init__(self, name, startingQuad, framelength, datatype):
+        super().__init__(name, startingQuad, framelength)
         self.datatype = datatype
 
-class SymbolicConstant :
-    def __init__(self,name,datatype,value):
-        self.name = name
-        self.datatype = datatype 
-        self.value = value 
+
 
 def createCcode(quad_list):
     L = ['int main()\n','{\n','']
@@ -1074,6 +1157,20 @@ def createCcode(quad_list):
 
         elif(quad.operator == '<='):
             temp += f"{quad.op1} <= {quad.op2}"
+
+
+class FormalParameter(Entity) :
+     def __init__(self, name, datatype, mode, offset):
+        super().__init__(name, datatype, offset)
+        self.datatype = datatype
+        self.mode = mode
+
+class Parameter(FormalParameter) :
+     def __init__(self, name, datatype, mode, offset):
+        super().__init__(name, datatype, offset)
+        self.mode = mode
+
+
                 
         elif(quad.operator == 'jump'):
             temp += f"goto L_{quad.target}"
@@ -1114,6 +1211,8 @@ lex = Lex(name, 1, token)
 parser = Parser(lex)
 parser.syntax_analyzer() # run syntax analyzer
 
-print_quads(quad_list)
-createCcode(quad_list)
+
+# print_quads(quad_list) # TODO: delete useless
+export_quads(quad_list)
+
 
