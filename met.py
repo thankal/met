@@ -1117,6 +1117,48 @@ class Function(Procedure):
         self.datatype = datatype
 
 
+
+def createCcode(quad_list):
+    L = ['int main()\n','{\n','']
+    parameters = []
+
+    for quad in quad_list:
+        temp = f"\tL_{quad.label}: "
+
+        if(quad.operator == "+"):
+            temp += f"{quad.target} = {quad.op1} + {quad.op2}"
+
+        elif(quad.operator == '-'):
+            temp += f"{quad.target} = {quad.op1} - {quad.op2}"            
+
+        elif(quad.operator == '*'):
+            temp += f"{quad.target} = {quad.op1} * {quad.op2}"
+
+        elif(quad.operator == '/'):
+            temp += f"{quad.target} = {quad.op1} / {quad.op2}"    
+
+        elif(quad.operator == ':='):
+            temp += f"{quad.target} = {quad.op1}" 
+
+        elif(quad.operator == '='):
+            temp += f"{quad.op1} = {quad.op2}"
+
+        elif(quad.operator == '>'):
+            temp += f"{quad.op1} > {quad.op2}"
+            
+        elif(quad.operator == '<'):
+            temp += f"{quad.op1} < {quad.op2}"
+
+        elif(quad.operator == '<>'):
+            temp += f"{quad.op1} != {quad.op2}"
+
+        elif(quad.operator == '>='):
+            temp += f"{quad.op1} >= {quad.op2}"
+
+        elif(quad.operator == '<='):
+            temp += f"{quad.op1} <= {quad.op2}"
+
+
 class FormalParameter(Entity) :
      def __init__(self, name, datatype, mode, offset):
         super().__init__(name, datatype, offset)
@@ -1128,7 +1170,39 @@ class Parameter(FormalParameter) :
         super().__init__(name, datatype, offset)
         self.mode = mode
 
+
                 
+        elif(quad.operator == 'jump'):
+            temp += f"goto L_{quad.target}"
+
+        elif(quad.operator == 'in'):
+            temp += f"{quad.op1}"
+
+        elif(quad.operator == 'out'):
+            temp += f"{quad.op1}"
+
+        elif(quad.operator == 'ret'):
+            temp += f"{quad.op1}"
+
+        elif(quad.operator == 'halt'):
+            temp +=f"[] "          
+
+        elif(quad.operator == 'par'):
+            parameters.append(quad.op1)
+
+        elif(quad.operator == 'call'):
+            temp += f"{quad.op1}"
+            print(f": {quad.op1}(")
+            for par in parameters[1::-1]:
+                temp += (f"{par}, ")
+            temp += f"{parameters[0]});"
+
+        L.append(temp)
+
+    # print List L            
+    for x in L:
+        print(f"{x}\n")        
+      
         
 # name = sys.argv[1] # get command line argument
 name = "testparser.ci"
@@ -1136,6 +1210,7 @@ token = Token(None, None, 1)
 lex = Lex(name, 1, token)
 parser = Parser(lex)
 parser.syntax_analyzer() # run syntax analyzer
+
 
 # print_quads(quad_list) # TODO: delete useless
 export_quads(quad_list)
