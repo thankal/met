@@ -1036,7 +1036,7 @@ class SymbolicConstant :
         self.datatype = datatype 
         self.value = value 
 
-def createCcode(quad_list):
+def create_c_code(quad_list):
     L = ['int main()\n','{\n','']
     parameters = []
 
@@ -1077,6 +1077,9 @@ def createCcode(quad_list):
 
             temp += f"if ({quad.op1} <= {quad.op2}) goto {quad.target}"
           
+        elif(quad.operator == 'par'):
+            parameters.append(str(quad.op1))
+
         elif(quad.operator == 'jump'):
             temp += f"goto L_{quad.target}"
 
@@ -1090,18 +1093,18 @@ def createCcode(quad_list):
             temp += f"return({quad.op1})"
 
         elif(quad.operator == 'halt'):
-            temp +=f"[] "          
+            temp += "[]"          
 
-        elif(quad.operator == 'par'):
-            print("HERE")
-            parameters.append(quad.op1)
 
         elif(quad.operator == 'call'):
-            temp += f"{quad.op1}"
-            print(f": {quad.op1}(")
-            for par in parameters[1::-1]: # read backwards
-                temp += (f"{par}, ")
-            # temp += f"{parameters[-1]});"
+            temp += f"{quad.op1}("
+            if (parameters):
+                for par in parameters[1::-1]: # read backwards
+                    temp += (f"{par}, ")
+                temp += f"{parameters[-1]});"
+                parameters = []
+            else:
+                temp += ");"
 
         L.append(temp)
 
@@ -1117,5 +1120,5 @@ parser = Parser(lex)
 parser.syntax_analyzer() # run syntax analyzer
 
 print_quads(quad_list)
-createCcode(quad_list)
+create_c_code(quad_list)
 
