@@ -1035,25 +1035,30 @@ class SymbolicConstant :
         self.datatype = datatype 
         self.value = value 
 
-def createCcode():
+def createCcode(quad_list):
     L = ["int main()","{"]
     for quad in quad_list:
       temp = f"L_{quad.label}"
 
       if(quad.operator == "+"):
           temp += f"{quad.target} = {quad.op1} + {quad.op2}"
+          print(f"{quad.target} = {quad.op1} + {quad.op2}")
 
       elif(quad.operator == '-'):
           temp += f"{quad.target} = {quad.op1} - {quad.op2}"
+          print(f"{quad.target} = {quad.op1} - {quad.op2}")
 
       elif(quad.operator == '*'):
           temp += f"{quad.target} = {quad.op1} * {quad.op2}"
+          print(f"{quad.target} = {quad.op1} * {quad.op2}")
 
       elif(quad.operator == '/'):
           temp += f"{quad.target} = {quad.op1} / {quad.op2}"    
+          print(f"{quad.target} = {quad.op1} / {quad.op2}")
 
       elif(quad.operator == ':='):
           temp += f"{quad.target} = {quad.op1}" 
+          print(f"{quad.target} = {quad.op1}")
 
       elif(quad.operator == '='):
           temp += f"{quad.op1} = {quad.op2}"
@@ -1081,6 +1086,7 @@ def createCcode():
               
       elif(quad.operator == 'jump'):
           temp += f"goto L_{quad.target}"
+          print(f"goto L_{quad.target}")
 
       elif(quad.operator == 'in'):
           temp += f"{quad.op1}"
@@ -1106,5 +1112,5 @@ parser = Parser(lex)
 parser.syntax_analyzer() # run syntax analyzer
 
 print_quads(quad_list)
-
+createCcode(quad_list)
 
