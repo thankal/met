@@ -497,12 +497,38 @@ class Parser:
     def declarations(self):
         # print('declarations')
         global token 
-        while (token.recognized_string == 'declare') :
-            token = self.get_token()
-            self.varlist()
-            if(token.recognized_string != ';'):
-                self.error('MissingQuestionMark')
-            token = self.get_token()
+        global table # the symbol table
+
+        while (token.recognized_string == 'declare' or token.recognized_string == 'const'):
+            if (token.recognized_string == 'declare') :
+                token = self.get_token()
+                self.varlist()
+                if(token.recognized_string != ';'):
+                    self.error('MissingQuestionMark')
+                token = self.get_token()
+
+            # added feature; check for constant initialization
+            if (token.recognized_string == 'const') :
+                token = self.get_token()
+                if token.family != 'id':
+                    self.error('MissingId')
+                id = token.recognized_string
+                token = self.get_token()
+                if (token.family != 'assignment'):
+                    self.error('MissingAssignment') 
+                token = self.get_token()
+                if (token.family != 'number'):
+                    print(f"Expected number but instead got{token.recognized_string} in line {token.line_number}")
+                    exit(-1)
+                value = token.recognized_string
+                token = self.get_token()
+                if(token.recognized_string != ';'):
+                    self.error('MissingQuestionMark')
+                token = self.get_token()
+
+                # add a new entity to the symbol table
+                const_entity = Constant(id, value)
+                table.addEntity(const_entity)
             
              
     
@@ -547,23 +573,40 @@ class Parser:
         else: 
             self.error('MissingOpenCurlyBracket')       
     
-    def formalparlist(self):
+    def formalparlist(self, entity):
         # print('formalparlist')
         global token 
         if token.recognized_string != ')': # if parenthesis don't close immediately
-            self.formalparitem()
+            self.formalparitem(entity)
             while(token.recognized_string == ','):
                 token = self.get_token()
-                self.formalparitem()
+                self.formalparitem(entity)
 
-    def formalparitem(self):
+    def formalparitem(self, entity):
         # print('formalparitem')
         global token 
-        if (token.recognized_string == 'in' or token.recognized_string == 'inout'):
+        if (token.recognized_string == 'in'):
             token = self.get_token()
             if token.family != 'id':
                 self.error('MissingInInoutdId')
+            id = token.recognized_string
+            curr_offset = table.getCurrentOffset() # get the current offset from the active scope
+            parameter_entity = Parameter(id, 'cv', curr_offset) # create the new parameter entity with the correct offset
+            table.addEntity(parameter_entity, 0) # add the newly created entity to the table (isConst=0)
+            table.addFormalParameter(entity, parameter_entity)
             token = self.get_token()        
+
+        elif (token.recognize_string == 'inout'):
+            token = self.get_token()
+            if token.family != 'id':
+                self.error('MissingInInoutdId')
+            id = token.recognized_string
+            curr_offset = table.getCurrentOffset() # get the current offset from the active scope
+            parameter_entity = Parameter(id, 'ref', curr_offset) # create the new parameter entity with the correct offset
+            table.addEntity(parameter_entity, 0) # add the newly created entity to the table (isConst=0)
+            table.addFormalParameter(entity, parameter_entity)
+            token = self.get_token()        
+
         else:
             self.error('MissingInInout')     
 
@@ -819,11 +862,45 @@ class Parser:
     def subprogram(self):
         # print('subprogram')
         global token 
-        if (token.recognized_string == 'function') or (token.recognized_string == 'procedure'):
+        global table
+
+        if (token.recognized_string == 'function'):
             token = self.get_token()
             name = token.recognized_string
 
             if token.family == 'id':
+                id = token.recognized_string
+                curr_offset = table.getCurrentOffset() # get the current offset from the active scope
+                function_entity = Variable(id, curr_offset) # create the new function entity with the correct offset
+                table.addEntity(function_entity, 0) # add the newly created entity to the table (isConst=0)
+                table.addLevel() # add a new level to the table
+
+                token = self.get_token()
+                if token.recognized_string == '(':
+                    token = self.get_token()
+                    self.formalparlist(function_entity) # ..also input function_entity; will need for formalparams completion
+                    if token.recognized_string != ')':
+                        self.error('MissingCloseParen')
+                    token = self.get_token()
+                    self.block(name)
+
+                else:
+                    self.error('MissingOpenParen')
+            else:
+                self.error('MissingId')
+            
+
+        elif (token.recognized_string == 'procedure'):
+            token = self.get_token()
+            name = token.recognized_string
+
+            if token.family == 'id':
+                id = token.recognized_string
+                curr_offset = table.getCurrentOffset() # get the current offset from the active scope
+                procedure_entity = Variable(id, curr_offset) # create the new procedure entity with the correct offset
+                table.addEntity(procedure_entity, 0) # add the newly created entity to the table (isConst=0)
+                table.addLevel() # add a new level to the table
+
                 token = self.get_token()
                 if token.recognized_string == '(':
                     token = self.get_token()
@@ -841,10 +918,11 @@ class Parser:
         else:
             self.error('MissingFunctionProcedure') 
 
+
     def subprograms(self):
         # print('subprograms')
         global token 
-        while(token.recognized_string == 'function' or token.recognized_string =='procedure'):
+        while(token.recognized_string == 'function' or token.recognized_string == 'procedure'):
             self.subprogram()
            
 
@@ -889,15 +967,27 @@ class Parser:
     def varlist(self):
         # print('varlist')
         global token 
+        global table
+
         if (token.recognized_string != ';'): # check for ';' if empty (see declarations grammar)
 
             if token.family == 'id':
+                id = token.recognized_string
+                curr_offset = table.getCurrentOffset() # get the current offset from the active scope
+                variable_entity = Variable(id, curr_offset) # create the new variable entity with the correct offset
+                table.addEntity(variable_entity, 0) # add the newly created entity to the table (isConst=0)
+
                 token = self.get_token()
                 while(token.recognized_string == ','):
                     token = self.get_token()
                     if (token.family != 'id'):
                         self.error('MissingId')  
+                    id = token.recognized_string
                     token = self.get_token()
+
+                    curr_offset = table.getCurrentOffset() # get the current offset from the active scope
+                    variable_entity = Variable(id, curr_offset) # create the new variable entity with the correct offset
+                    table.addEntity(variable_entity, 0) # add the newly created entity to the table (isConst=0)
                     
             else:
                 self.error('MissingId')  
@@ -927,24 +1017,6 @@ class Bool_List:
         self.true = []
         self.false = []
 
-    # TODO : delete
-    # def __init__(self, true, false):
-    #     # two lists 
-    #     self.true = true
-    #     self.false = false
-
-
-
-class QuadPointer : # TODO: maybe delete no use?
-
-    def __init__(self, label, quad):
-        self.label = label
-        self.quad = quad
-    
-    def get_quad(self):
-        return self.quad
-
-    
 # helper routines
 
 quad_list = [] # global list that keeps all quad objects
@@ -1015,8 +1087,8 @@ class Table:
         self.scope_list = [] # initialize a list of scopes
     
     # add a new entity to the current scope
-    def addEntity(self, name):
-        self.scope_list[-1].addEntity(name) # add a new entity on the uppermost scope 
+    def addEntity(self, new_entity, isConst):
+        self.scope_list[-1].addEntity(new_entity, isConst) # add a new entity on the uppermost scope 
     
     # add a new level(scope) to the table
     def addLevel(self):
@@ -1037,9 +1109,9 @@ class Table:
     def updateFields(self, framelength, startingQuad):
         self.scope_list[-1].updateFields(framelength, startingQuad)
 
-    # add a new formal parameter to the function or procedure entity
-    def addFormalParameter(self, formal_parameter):
-        self.scope_list[-1].addFormalParameter(formal_parameter)
+    # add a new formal parameter to the function or procedure entity specified
+    def addFormalParameter(self, entity, formal_parameter):
+        entity.addFormalParameter(formal_parameter)
 
     # search for an entity based on name
     def searchEntity(self, name):
@@ -1049,7 +1121,17 @@ class Table:
         # if execution reaches this point it means entity was not found; throw an exception
         print(f"Entity with name {name} was not found.")
         exit(-1)
+    
+    # get the current relative offset of the uppermost scope
+    def getCurrentOffset(self):
+        return self.scope_list[-1].rel_offset
 
+    def __str__(self):
+        temp = ''
+        for scope in self.scope_list:
+            temp += str(scope) # print scope
+            temp += '\n'
+        return temp
 
 level_counter = 0 # keeps track of the current scope level
 
@@ -1057,21 +1139,39 @@ class Scope:
     def __init__(self):
         self.level = level_counter
         self.entity_list = [] # initialize a list of entities
+        self.rel_offset = 12 # current relative offset of the scope
     
-    def addEntity(self, name):
+    def addEntity(self, name, isConst):
         new_entity = Entity(name)
         self.entity_list.append(new_entity) # add a new entity in the current scope
+
+        # make sure constants don't occupy space in stack 
+        if (isConst == 0):
+            rel_offset += 4 # if a new entity is added, the offset is incremented by 4 bytes
+
 
     def updateFields(self, framelength, startingQuad):
         self.entity_list[-1].updateFields(framelength, startingQuad) # TODO: maybe not the last entity?
 
-    def addFormalParameter(self, formal_parameter):
-        self.entity_list[-1].addFormalParameter(formal_parameter) # TODO: maybe not the last one?
+    def addFormalParameter(self, entity, formal_parameter):
+        entity.addFormalParameter(formal_parameter) 
 
     def searchEntity(self, name):
         for e in self.entity_list:
             if (e.name == name):
                 return e
+
+    def __str__(self):
+        temp = ''
+        for entity in self.entity_list[:-1:]:
+            temp += '['
+            temp += str(entity)
+            temp += ']<-- '
+        temp += '['
+        temp += str(self.entity_list[-1]) # print also the last entity
+        temp += ']'
+
+        return f"({self.level})<-- + {temp}" 
 
 class Entity:
     def __init__(self, name):
@@ -1081,25 +1181,30 @@ class Entity:
         self.framelength = framelength
         self.startingQuad = startingQuad
 
+    # when entity is a function or procedure
     def addFormalParameter(self, formal_parameter):
-        self.formal_parameter = formal_parameter
+        self.formalParameters.append(formal_parameter) # add the new formal parameter to the list of parameters
 
 
 class Variable(Entity):
-   def __init__(self, name, datatype, offset):
+    def __init__(self, name, offset):
        super().__init__(name)
-       self.datatype = datatype
        self.offset = offset
 
+    def __str__(self):
+        return f"{self.name}/{self.offset}"
+
 class TemporaryVariable(Variable):
-    def __init__(self, name, datatype, offset):
-        super().__init__(name, datatype, offset)
+    def __init__(self, name, offset):
+        super().__init__(name, offset)
 
 class Constant(Entity):
-    def __init__(self, name, datatype, value):
+    def __init__(self, name, value):
         super().__init__(name)
-        self.datatype = datatype # TODO: del not needed in cimple
         self.value = value 
+
+    def __str__(self):
+        return f"{self.name}={self.value}"
 
 class Procedure(Entity):
     def __init__(self, name, startingQuad, framelength):
@@ -1110,11 +1215,17 @@ class Procedure(Entity):
     
     def addFormalParameter(self, formal_parameter):
         self.formalParameters.append(formal_parameter) # add the new formal parameter to the list of parameters
+
+    def __str__(self):
+        temp = f"{self.name}/{self.startingQuad}/{self.framelength}"
+        for param in self.formalParameters:
+            temp += f"<{str(param)}>"
+
+        return temp
          
 class Function(Procedure):
-    def __init__(self, name, startingQuad, framelength, datatype):
+    def __init__(self, name, startingQuad, framelength):
         super().__init__(name, startingQuad, framelength)
-        self.datatype = datatype
 
 
 
@@ -1160,14 +1271,12 @@ def createCcode(quad_list):
 
 
 class FormalParameter(Entity) :
-     def __init__(self, name, datatype, mode, offset):
-        super().__init__(name, datatype, offset)
-        self.datatype = datatype
-        self.mode = mode
+     def __init__(self, name, offset):
+        super().__init__(name, offset)
 
 class Parameter(FormalParameter) :
-     def __init__(self, name, datatype, mode, offset):
-        super().__init__(name, datatype, offset)
+     def __init__(self, name, mode, offset):
+        super().__init__(name, offset)
         self.mode = mode
 
 
@@ -1205,7 +1314,7 @@ class Parameter(FormalParameter) :
       
         
 # name = sys.argv[1] # get command line argument
-name = "testparser.ci"
+name = "symbol_test.ci"
 token = Token(None, None, 1)
 lex = Lex(name, 1, token)
 parser = Parser(lex)
@@ -1215,4 +1324,5 @@ parser.syntax_analyzer() # run syntax analyzer
 # print_quads(quad_list) # TODO: delete useless
 export_quads(quad_list)
 
+table = Table()
 
