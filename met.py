@@ -1034,7 +1034,69 @@ class SymbolicConstant :
         self.name = name
         self.datatype = datatype 
         self.value = value 
-                
+
+def createCcode():
+    L = ["int main()","{"]
+    for quad in quad_list:
+      temp = f"L_{quad.label}"
+
+      if(quad.operator == "+"):
+          temp += f"{quad.target} = {quad.op1} + {quad.op2}"
+
+      elif(quad.operator == '-'):
+          temp += f"{quad.target} = {quad.op1} - {quad.op2}"
+
+      elif(quad.operator == '*'):
+          temp += f"{quad.target} = {quad.op1} * {quad.op2}"
+
+      elif(quad.operator == '/'):
+          temp += f"{quad.target} = {quad.op1} / {quad.op2}"    
+
+      elif(quad.operator == ':='):
+          temp += f"{quad.target} = {quad.op1}" 
+
+      elif(quad.operator == '='):
+          temp += f"{quad.op1} = {quad.op2}"
+          print(f"if ({quad.op1} = {quad.op2}) goto {quad.target}")    
+
+      elif(quad.operator == '>'):
+          temp += f"{quad.op1} > {quad.op2}"
+          print(f"if ({quad.op1} > {quad.op2}) goto {quad.target}" )
+          
+      elif(quad.operator == '<'):
+          temp += f"{quad.op1} < {quad.op2}"
+          print(f"if ({quad.op1} < {quad.op2}) goto {quad.target} ")
+
+      elif(quad.operator == '<>'):
+          temp += f"{quad.op1} != {quad.op2}"
+          print(f"if ({quad.op1} != {quad.op2}) goto {quad.target} ")
+
+      elif(quad.operator == '>='):
+          temp += f"{quad.op1} >= {quad.op2}"
+          print(f"if ({quad.op1} >= {quad.op2}) goto {quad.target}" )
+
+      elif(quad.operator == '<='):
+          temp += f"{quad.op1} <= {quad.op2}"
+          print(f"if ({quad.op1} <= {quad.op2}) goto {quad.target} ")
+              
+      elif(quad.operator == 'jump'):
+          temp += f"goto L_{quad.target}"
+
+      elif(quad.operator == 'in'):
+          temp += f"{quad.op1}"
+          print(f"scanf {quad.op1}")    
+
+      elif(quad.operator == 'out'):
+          temp += f"{quad.op1}"
+          print(f"printf {quad.op1}")
+
+      elif(quad.operator == 'retv'):
+         temp += f"{quad.op1}"
+         print(f"return {quad.op1}")  
+
+      elif(quad.operator == 'halt'):
+          print("{}")  
+                      
         
 # name = sys.argv[1] # get command line argument
 name = "testparser.ci"
