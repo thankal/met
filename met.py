@@ -1303,7 +1303,6 @@ def createCcode(quad_list):
     # print List L            
     for x in L:
         print(f"{x}\n")        
-      
         
 # name = sys.argv[1] # get command line argument
 name = "symbol_test.ci"
