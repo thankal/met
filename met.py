@@ -709,14 +709,15 @@ class Parser:
 
         else:
             e1_place = self.expression()
-            
+
             if (token.family == 'relOperator'):
+                relOperator = token.recognized_string
                 token = self.get_token()
             else:
                 self.error('MissingRelOperator')
             e2_place = self.expression()
             boolfactor.true = makeList(nextQuad())
-            genQuad('relOperator',e1_place, e2_place, '_')
+            genQuad(relOperator,e1_place, e2_place, '_')
             boolfactor.false = makeList(nextQuad())
             genQuad('jump','_','_','_')
 
@@ -1058,47 +1059,48 @@ def createCcode(quad_list):
             temp += f"{quad.target} = {quad.op1}" 
 
         elif(quad.operator == '='):
-            temp += f"{quad.op1} = {quad.op2}"
+            temp += f"if ({quad.op1} = {quad.op2}) goto {quad.target}"
 
         elif(quad.operator == '>'):
-            temp += f"{quad.op1} > {quad.op2}"
+            temp += f"if ({quad.op1} > {quad.op2}) goto {quad.target}"
             
         elif(quad.operator == '<'):
-            temp += f"{quad.op1} < {quad.op2}"
+            temp += f"if ({quad.op1} < {quad.op2}) goto {quad.target}"
 
         elif(quad.operator == '<>'):
-            temp += f"{quad.op1} != {quad.op2}"
+            temp += f"if ({quad.op1} != {quad.op2}) goto {quad.target}"
 
         elif(quad.operator == '>='):
-            temp += f"{quad.op1} >= {quad.op2}"
+            temp += f"if ({quad.op1} >= {quad.op2}) goto {quad.target}"
 
         elif(quad.operator == '<='):
-            temp += f"{quad.op1} <= {quad.op2}"
+            temp += f"if ({quad.op1} <= {quad.op2}) goto {quad.target}"
                 
         elif(quad.operator == 'jump'):
             temp += f"goto L_{quad.target}"
 
         elif(quad.operator == 'in'):
-            temp += f"{quad.op1}"
+            temp += f"scanf({quad.op1})"
 
         elif(quad.operator == 'out'):
-            temp += f"{quad.op1}"
+            temp += f"printf({quad.op1})"
 
         elif(quad.operator == 'ret'):
-            temp += f"{quad.op1}"
+            temp += f"return({quad.op1})"
 
         elif(quad.operator == 'halt'):
             temp +=f"[] "          
 
         elif(quad.operator == 'par'):
+            print("HERE")
             parameters.append(quad.op1)
 
         elif(quad.operator == 'call'):
             temp += f"{quad.op1}"
             print(f": {quad.op1}(")
-            for par in parameters[1::-1]:
+            for par in parameters[1::-1]: # read backwards
                 temp += (f"{par}, ")
-            temp += f"{parameters[0]});"
+            # temp += f"{parameters[-1]});"
 
         L.append(temp)
 
