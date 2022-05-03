@@ -503,6 +503,22 @@ class Parser:
             if(token.recognized_string != ';'):
                 self.error('MissingQuestionMark')
             token = self.get_token()
+
+        while (token.recognized_string == 'const') :
+            token = self.get_token()
+            if token.family != 'id':
+                self.error('MissingId')
+            token = self.get_token()
+            if (token.family != 'assignment'):
+                self.error('MissingAssignment') 
+            token = self.get_token()
+            if (token.family != 'number'):
+                print(f"Expected number but instead got{token.recognized_string} in line {token.line_number}")
+                exit(-1)
+
+            if(token.recognized_string != ';'):
+                self.error('MissingQuestionMark')
+            token = self.get_token()
             
              
     
@@ -1015,8 +1031,8 @@ class Table:
         self.scope_list = [] # initialize a list of scopes
     
     # add a new entity to the current scope
-    def addEntity(self, name):
-        self.scope_list[-1].addEntity(name) # add a new entity on the uppermost scope 
+    def addEntity(self, new_entity):
+        self.scope_list[-1].addEntity(new_entity) # add a new entity on the uppermost scope 
     
     # add a new level(scope) to the table
     def addLevel(self):
