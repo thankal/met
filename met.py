@@ -2,11 +2,13 @@
 # Athanasios Kalyviotis, 4607, cse84607
 # Dimitrios Giannitsakis, 4338, cse84338
 
+from abc import abstractmethod
 from asyncio import new_event_loop
 from asyncore import write
 from contextlib import redirect_stderr
 import sys
 from unittest import result
+from abc import ABC, abstractmethod
 
 
 keyword = ['while','if','else']
@@ -528,7 +530,7 @@ class Parser:
 
                 # add a new entity to the symbol table
                 const_entity = Constant(id, value)
-                table.addEntity(const_entity, 0)
+                table.addEntity(const_entity, isConst=1)
             
              
     
@@ -1057,6 +1059,12 @@ def newTemp():
     global temp_number
     temp = 'T_' + str(temp_number)
     temp_number += 1
+
+    # make an entry in the symbol table for the newly created temp
+    curr_offset = table.getCurrentOffset()
+    temp_entity = TemporaryVariable(temp, curr_offset)
+    table.addEntity(temp_entity, 0)
+
     return temp
 
 def backpatch(list, target):
@@ -1212,6 +1220,7 @@ def create_c_code(quad_list):
 class Table:
     def __init__(self):
         self.scope_list = [] # initialize a list of scopes
+        self.addLevel()
     
     # add a new entity to the current scope
     def addEntity(self, new_entity, isConst):
@@ -1253,7 +1262,7 @@ class Table:
     # get the current relative offset of the uppermost scope
     def getCurrentOffset(self):
         if (self.scope_list):
-            return self.scope_list[-1].rel_offset
+            return self.scope_list[-1].getRelOffset()
 
     def __str__(self):
         temp = ''
@@ -1270,14 +1279,13 @@ class Scope:
         self.entity_list = [] # initialize a list of entities
         self.rel_offset = 12 # current relative offset of the scope
     
-    def addEntity(self, name, isConst):
-        new_entity = Entity(name)
+    def addEntity(self, new_entity, isConst):
         self.entity_list.append(new_entity) # add a new entity in the current scope
 
         # make sure constants don't occupy space in stack 
         if (isConst == 0):
+            new_entity.offset = self.rel_offset
             self.rel_offset += 4 # if a new entity is added, the offset is incremented by 4 bytes
-
 
     def updateFields(self, framelength, startingQuad):
         self.entity_list[-1].updateFields(framelength, startingQuad) # TODO: maybe not the last entity?
@@ -1300,9 +1308,12 @@ class Scope:
         temp += str(self.entity_list[-1]) # print also the last entity
         temp += ']'
 
-        return f"({self.level})<-- + {temp}" 
+        return f"({self.level})<-- {temp}" 
 
-class Entity:
+    def getRelOffset(self):
+        return self.rel_offset
+
+class Entity():
     def __init__(self, name):
         self.name = name    
     
@@ -1315,6 +1326,8 @@ class Entity:
     def addFormalParameter(self, formal_parameter):
         self.formalParameters.append(formal_parameter) # add the new formal parameter to the list of parameters
 
+    def __str__(self):
+        return f"{self.name}"
 
 class Variable(Entity):
     def __init__(self, name, offset):
@@ -1334,7 +1347,9 @@ class Constant(Entity):
         self.value = value 
 
     def __str__(self):
-        return f"{self.name}={self.value}"
+        temp = super().__str__()
+        temp += f"={self.value}"
+        return temp
 
 class Procedure(Entity):
     def __init__(self, name):
@@ -1359,14 +1374,23 @@ class Function(Procedure):
 
 
 class FormalParameter(Entity) :
-     def __init__(self, name, offset):
+    def __init__(self, name, mode):
         super().__init__(name)
-        self.offset = offset
+        self.mode = mode
+
+    def __str__(self):
+        temp = super.__str__()
+        temp += f"/{self.mode}"
+        return temp
 
 class Parameter(FormalParameter) :
-     def __init__(self, name, mode, offset):
-        super().__init__(name, offset)
-        self.mode = mode
+    def __init__(self, name, mode, offset):
+        super().__init__(name, mode)
+        self.offset= offset
+
+    def __str__(self):
+        temp = f"{self.name}/{self.offset}/{self.mode}"
+        return temp
 
                 
 
