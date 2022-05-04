@@ -446,7 +446,6 @@ class Parser:
         if token.family != 'id':
             self.error('MissingId')
         name = token.recognized_string
-        genQuad("call", name, "_", "_")
 
         token = self.get_token()
         if token.recognized_string == '(':
@@ -455,6 +454,7 @@ class Parser:
             if token.recognized_string != ')':
                 self.error('MissingCloseParen')
             token = self.get_token()
+            genQuad("call", name, "_", "_")
         else:
             self.error('MissingOpenParen')
 
@@ -1078,6 +1078,82 @@ def export_quads(quad_list):
         intermediate_file.write(str(quad)+'\n')
     intermediate_file.close()
 
+def create_c_code(quad_list):
+    L = ['int main()\n','{\n','']
+    parameters = []
+
+    for quad in quad_list:
+        temp = f"\tL_{quad.label}: "
+
+        if(quad.operator == "+"):
+            temp += f"{quad.target} = {quad.op1} + {quad.op2}"
+
+        elif(quad.operator == '-'):
+            temp += f"{quad.target} = {quad.op1} - {quad.op2}"            
+
+        elif(quad.operator == '*'):
+            temp += f"{quad.target} = {quad.op1} * {quad.op2}"
+
+        elif(quad.operator == '/'):
+            temp += f"{quad.target} = {quad.op1} / {quad.op2}"    
+
+        elif(quad.operator == ':='):
+            temp += f"{quad.target} = {quad.op1}" 
+
+        elif(quad.operator == '='):
+            temp += f"if ({quad.op1} = {quad.op2}) goto {quad.target}"
+
+        elif(quad.operator == '>'):
+            temp += f"if ({quad.op1} > {quad.op2}) goto {quad.target}"
+            
+        elif(quad.operator == '<'):
+            temp += f"if ({quad.op1} < {quad.op2}) goto {quad.target}"
+
+        elif(quad.operator == '<>'):
+            temp += f"if ({quad.op1} != {quad.op2}) goto {quad.target}"
+
+        elif(quad.operator == '>='):
+            temp += f"if ({quad.op1} >= {quad.op2}) goto {quad.target}"
+
+        elif(quad.operator == '<='):
+
+            temp += f"if ({quad.op1} <= {quad.op2}) goto {quad.target}"
+          
+        elif(quad.operator == 'par'):
+            parameters.append(str(quad.op1))
+
+        elif(quad.operator == 'jump'):
+            temp += f"goto L_{quad.target}"
+
+        elif(quad.operator == 'in'):
+            temp += f"scanf({quad.op1})"
+
+        elif(quad.operator == 'out'):
+            temp += f"printf({quad.op1})"
+
+        elif(quad.operator == 'ret'):
+            temp += f"return({quad.op1})"
+
+        elif(quad.operator == 'halt'):
+            temp += "{}"          
+
+        elif(quad.operator == 'call'):
+            temp += f"{quad.op1}("
+            if (parameters):
+                for par in parameters[:-1]: # read backwards
+                    temp += (f"{par}, ")
+                temp += f"{parameters[-1]});"
+                parameters = []
+            else:
+                temp += ");"
+
+        L.append(temp)
+
+    # print List L            
+    for x in L:
+        print(f"{x}\n")        
+
+
 
 # symbol table classes
 class Table:
@@ -1239,9 +1315,10 @@ class Parameter(FormalParameter) :
         self.mode = mode
 
                 
+
         
 # name = sys.argv[1] # get command line argument
-name = "symbol_test.ci"
+name = "testparser.ci"
 token = Token(None, None, 1)
 lex = Lex(name, 1, token)
 parser = Parser(lex)
@@ -1251,6 +1328,6 @@ parser.syntax_analyzer() # run syntax analyzer
 
 # print_quads(quad_list) # TODO: delete useless
 export_quads(quad_list)
-
+create_c_code(quad_list)
 
 print(table)
