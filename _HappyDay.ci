@@ -38,8 +38,7 @@ program happyday
     {
         function subfunc(){
             return (w+x);
-            #epistredw - #
-            #popa#
+            
         }
         w:=w+1;
 
