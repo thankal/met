@@ -1326,8 +1326,7 @@ class Parameter(FormalParameter) :
         super().__init__(name, offset)
         self.mode = mode
 
-                
-
+        
         
 # name = sys.argv[1] # get command line argument
 name = "symbol_test.ci"
@@ -1337,6 +1336,7 @@ parser = Parser(lex)
 table = Table()
 
 parser.syntax_analyzer() # run syntax analyzer
+
 
 # print_quads(quad_list) # TODO: delete useless
 export_quads(quad_list)
