@@ -445,16 +445,16 @@ class Parser:
         global token 
         if token.family != 'id':
             self.error('MissingId')
-        name = token.recognized_string
+        callee_id = token.recognized_string
 
         token = self.get_token()
         if token.recognized_string == '(':
             token = self.get_token()
-            self.actualparlist()
+            self.actualparlist(id=callee_id)
             if token.recognized_string != ')':
                 self.error('MissingCloseParen')
             token = self.get_token()
-            genQuad("call", name, "_", "_")
+
         else:
             self.error('MissingOpenParen')
 
@@ -797,6 +797,34 @@ class Parser:
         t_place = f1_place
         return t_place
 
+
+    def factor(self):
+        # print('factor')
+        global token
+        if token.recognized_string == '(':
+            token = self.get_token()
+            e_place = self.expression()
+            if token.recognized_string != ')':
+                self.error('MissingCloseParen')
+            token = self.get_token()
+            f_place = e_place
+
+        elif token.family == 'id':
+            id = token.recognized_string
+            token = self.get_token()
+            id_place = self.idtail(id) # call idtail and pass the ID with it
+
+            f_place = id_place 
+
+        elif token.family == 'number': 
+            f_place = token.recognized_string
+            token = self.get_token()
+
+        else:
+            self.error('MissingFactor')   
+
+        return f_place
+  
         
     def program(self):
         # print('program')
@@ -821,35 +849,8 @@ class Parser:
         else:
             self.error('MissingProgram')     
 
-    def factor(self):
-        # print('factor')
-        global token
-        if token.recognized_string == '(':
-            token = self.get_token()
-            e_place = self.expression()
-            if token.recognized_string != ')':
-                self.error('MissingCloseParen')
-            token = self.get_token()
-            f_place = e_place
-
-        elif token.family == 'id':
-            id_place = token.recognized_string
-            token = self.get_token()
-            self.idtail()   # TODO: follow idtail for return?
-
-            f_place = id_place # TODO: can be shortened f_place=self.idtail()
-
-        elif token.family == 'number': 
-            f_place = token.recognized_string
-            token = self.get_token()
-
-        else:
-            self.error('MissingFactor')   
-
-        return f_place
-  
             
-    def actualparlist(self):
+    def actualparlist(self, id, needRet=0):
         # print('actualparlist')
         global token
         if (token.recognized_string != ')'): # if parenthesis don't close immediately
@@ -857,6 +858,35 @@ class Parser:
             while(token.recognized_string == ','):
                 token = self.get_token()
                 self.actualparitem()
+
+            # done with function/procedure params, gen quads for call and maybe return value
+            t = ''
+            if (needRet):
+                t = newTemp()
+                genQuad('par', t, 'ret', '_') # extra quad; we need the return value (unlike callStat)
+            genQuad('call', id, '_', '_')
+
+            return t;
+
+    def actualparitem(self):
+        # print('actualparitem')
+        global token
+        if token.recognized_string == 'in':
+            token = self.get_token()
+            e_place = self.expression()
+            genQuad("par", e_place, "cv", "_")
+
+        elif token.recognized_string == 'inout':
+            token = self.get_token()
+            id = token.recognized_string
+            genQuad("par", id, "ref", "_")
+
+            if token.family != 'id':
+              self.error('MissingInInoutId')
+            token = self.get_token()
+
+        else:
+          self.error('MissingInInout')
 
                    
     def subprogram(self):
@@ -924,36 +954,18 @@ class Parser:
             self.subprogram()
            
 
-    def actualparitem(self):
-        # print('actualparitem')
-        global token
-        if token.recognized_string == 'in':
-            token = self.get_token()
-            e_place = self.expression()
-            genQuad("par", e_place, "cv", "_")
-        elif token.recognized_string == 'inout':
-            token = self.get_token()
-
-            id = token.recognized_string
-            # TODO: add genQuad(par, T_x, ret, _) functionality in case of :=
-            genQuad("par", id, "ref", "_")
-
-            if token.family != 'id':
-              self.error('MissingInInoutId')
-            token = self.get_token()
-
-        else:
-          self.error('MissingInInout')
-      
-    def idtail(self):
+    def idtail(self, id):
         # print('idtail')
         global token
+        id_place = id # often the idtail is just called by a variable, so just return its name
         if token.recognized_string == '(':
             token = self.get_token()
-            self.actualparlist()
+            id_place = self.actualparlist(id, needRet=1) # executes only if it is a function or procedure
             if token.recognized_string != ')':
                 self.error('MissingCloseParen')
             token = self.get_token()
+        
+        return id_place # return to factor rule
             
     def optionalSign(self):
         # print('optionalSign')
@@ -1318,7 +1330,7 @@ class Parameter(FormalParameter) :
 
         
 # name = sys.argv[1] # get command line argument
-name = "testparser.ci"
+name = "symbol_test.ci"
 token = Token(None, None, 1)
 lex = Lex(name, 1, token)
 parser = Parser(lex)
