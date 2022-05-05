@@ -1121,7 +1121,7 @@ def create_c_code(quad_list):
         temp = f"\tL_{quad.label}: "
 
         if(quad.operator == "+"):
-            temp += f"{quad.target} = {quad.op1} + {quad.op2}"
+            temp += f"{quad.target} = {quad.op1} + {quad.op2};"
             operand = f"{quad.op1}"
             if (not operand.isnumeric()): operands.add(operand)
             operand = f"{quad.op2}"
@@ -1129,7 +1129,7 @@ def create_c_code(quad_list):
             
             
         elif(quad.operator == '-'):
-            temp += f"{quad.target} = {quad.op1} - {quad.op2}"            
+            temp += f"{quad.target} = {quad.op1} - {quad.op2};"            
             operand = f"{quad.op1}"
             if (not operand.isnumeric()): operands.add(operand)
             operand = f"{quad.op2}"
@@ -1137,7 +1137,7 @@ def create_c_code(quad_list):
             
 
         elif(quad.operator == '*'):
-            temp += f"{quad.target} = {quad.op1} * {quad.op2}"
+            temp += f"{quad.target} = {quad.op1} * {quad.op2};"
             operand = f"{quad.op1}"
             if (not operand.isnumeric()): operands.add(operand)
             operand = f"{quad.op2}"
@@ -1145,7 +1145,7 @@ def create_c_code(quad_list):
             
 
         elif(quad.operator == '/'):
-            temp += f"{quad.target} = {quad.op1} / {quad.op2}"    
+            temp += f"{quad.target} = {quad.op1} / {quad.op2};"    
             operand = f"{quad.op1}"
             if (not operand.isnumeric()): operands.add(operand)
             operand = f"{quad.op2}"
@@ -1153,7 +1153,7 @@ def create_c_code(quad_list):
             
 
         elif(quad.operator == ':='):
-            temp += f"{quad.target} = {quad.op1}" 
+            temp += f"{quad.target} = {quad.op1};" 
             operand = f"{quad.op1}"
             if (not operand.isnumeric()): operands.add(operand)
             operand = f"{quad.op2}"
@@ -1161,7 +1161,7 @@ def create_c_code(quad_list):
             
 
         elif(quad.operator == '='):
-            temp += f"if ({quad.op1} = {quad.op2}) goto {quad.target}"
+            temp += f"if ({quad.op1} = {quad.op2}) goto L_{quad.target};"
             operand = f"{quad.op1}"
             if (not operand.isnumeric()): operands.add(operand)
             operand = f"{quad.op2}"
@@ -1169,23 +1169,23 @@ def create_c_code(quad_list):
             
 
         elif(quad.operator == '>'):
-            temp += f"if ({quad.op1} > {quad.op2}) goto {quad.target}"
+            temp += f"if ({quad.op1} > {quad.op2}) goto L_{quad.target};"
             
 
         elif(quad.operator == '<'):
-            temp += f"if ({quad.op1} < {quad.op2}) goto {quad.target}"
+            temp += f"if ({quad.op1} < {quad.op2}) goto L_{quad.target};"
             
 
         elif(quad.operator == '<>'):
-            temp += f"if ({quad.op1} != {quad.op2}) goto {quad.target}"
+            temp += f"if ({quad.op1} != {quad.op2}) goto L_{quad.target};"
             
 
         elif(quad.operator == '>='):
-            temp += f"if ({quad.op1} >= {quad.op2}) goto {quad.target}"
+            temp += f"if ({quad.op1} >= {quad.op2}) goto L_{quad.target};"
            
 
         elif(quad.operator == '<='):
-            temp += f"if ({quad.op1} <= {quad.op2}) goto {quad.target}"
+            temp += f"if ({quad.op1} <= {quad.op2}) goto L_{quad.target};"
             
 
         elif(quad.operator == 'par'):
@@ -1195,22 +1195,22 @@ def create_c_code(quad_list):
             
 
         elif(quad.operator == 'jump'):
-            temp += f"goto L_{quad.target}"
+            temp += f"goto L_{quad.target};"
 
         elif(quad.operator == 'in'):
-            temp += f"scanf({quad.op1})"
+            temp += f"scanf({quad.op1});"
             operand = f"{quad.op1}"
             if (not operand.isnumeric()): operands.add(operand)
             
 
         elif(quad.operator == 'out'):
-            temp += f"printf({quad.op1})"
+            temp += f"printf({quad.op1});"
             operand = f"{quad.op1}"
             if (not operand.isnumeric()): operands.add(operand)
             
 
         elif(quad.operator == 'ret'):
-            temp += f"return({quad.op1})"
+            temp += f"return({quad.op1});"
 
         elif(quad.operator == 'halt'):
             temp += "{}"          
@@ -1233,6 +1233,7 @@ def create_c_code(quad_list):
         declare += f"{op}, "
     declare += f"{operands_list[-1]};"
     L[2] += declare
+    L.pop()
        
     file = open('test.c','w')
     for x in L:
@@ -1429,7 +1430,7 @@ def export_symbols():
 
         
 # name = sys.argv[1] # get command line argument
-name = "symbol_test.ci"
+name = sys.argv[1]
 token = Token(None, None, 1)
 lex = Lex(name, 1, token)
 parser = Parser(lex)
