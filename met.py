@@ -944,6 +944,7 @@ class Parser:
                 id = token.recognized_string
                 procedure_entity = Procedure(id) # create the new procedure entity 
                 table.addEntity(procedure_entity, 0) # add the newly created entity to the table (isConst=0)
+                table.addPrintPhase(f"{table}\n\n") # save symbol table state before we add a new level
                 table.addLevel() # add a new level to the table
 
                 token = self.get_token()
@@ -1435,6 +1436,7 @@ def export_symbols():
     symbol_file = open('test.symb', 'w')
     for state in table.printPhases:
         symbol_file.write(state)
+    symbol_file.write(str(table)) # ...and finally show table state at the end
 
         
 # name = sys.argv[1] # get command line argument
