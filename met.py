@@ -21,6 +21,7 @@ groupSymbol= ['(',')','{','}','[',']']
 # used in intermediate code generation - class Quad
 label_number = 0 # a counter that keeps track of current quad label
 temp_number = 1 # a counter that keeps track of current temporary variable number
+level_counter = 0 # keeps track of the current scope level (for Scope class)
 
 class Token:
     def __init__(self, recognized_string, family, line_number):
@@ -1074,6 +1075,7 @@ def export_quads(quad_list):
         intermediate_file.write(str(quad)+'\n')
     intermediate_file.close()
 
+# here we generate a new .c file - based on the generated quads
 def create_c_code(quad_list):
     L = ['int main()\n','{\n','']
     parameters = []
@@ -1208,8 +1210,17 @@ def create_c_code(quad_list):
     for x in L:
         file.write(str(x)+'\n')
     file.close()    
+
+# show all the symbol table phases in a readable format and export them to a .symb file
+def export_symbols():
+    symbol_file = open('test.symb', 'w')
+    for state in table.printPhases:
+        symbol_file.write(state)
+    symbol_file.write(str(table)) # ...and finally show table state at the end
     
-# symbol table classes
+
+
+## symbol table classes
 class Table:
     def __init__(self):
         self.scope_list = [] # initialize a list of scopes
@@ -1265,11 +1276,9 @@ class Table:
             temp += '\n'
         return temp
     
-    # helper method
+    # helper method; adds the current table state to a list for printing later
     def addPrintPhase(self, phase_string):
         self.printPhases.append(phase_string)
-
-level_counter = 0 # keeps track of the current scope level
 
 class Scope:
     def __init__(self):
@@ -1391,24 +1400,17 @@ class Parameter(FormalParameter) :
         return temp
 
                 
-# show all the symbol table phases in a readable format and export them to a .symb file
-def export_symbols():
-    symbol_file = open('test.symb', 'w')
-    for state in table.printPhases:
-        symbol_file.write(state)
-    symbol_file.write(str(table)) # ...and finally show table state at the end
-
-        
-# name = sys.argv[1] # get command line argument
-name = sys.argv[1]
+#------------------------------------------#
+# main #
+name = sys.argv[1] # get command line argument
 token = Token(None, None, 1)
 lex = Lex(name, 1, token)
 parser = Parser(lex)
-table = Table()
+table = Table() # create a new table object for handling the symbol table
 
 parser.syntax_analyzer() # run syntax analyzer
 
 
-export_quads(quad_list)
-create_c_code(quad_list)
-export_symbols()
+export_quads(quad_list) # generate .int file
+create_c_code(quad_list) # generate .c file
+export_symbols() # generate .symb file
