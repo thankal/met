@@ -6,6 +6,7 @@ from abc import abstractmethod
 from asyncio import new_event_loop
 from asyncore import write
 from contextlib import redirect_stderr
+from msilib.schema import File
 import sys
 from unittest import result
 from abc import ABC, abstractmethod
@@ -466,7 +467,6 @@ class Parser:
         if token.recognized_string == '(':
             token = self.get_token()
             e_place = self.expression()
-            # res = self.expression() ; the result of the expression TODO
             if token.recognized_string != ')':
                 self.error('MissingCloseParen')
             token = self.get_token()
@@ -564,9 +564,17 @@ class Parser:
             self.subprograms()
 
             genQuad("begin_block", name, "_", "_")
+            startingQuad_label = nextQuad() # give me the next quad; it will be the startingQuad used in the symbol table
             # TODO: blockstatements or block?
             self.blockstatements()
             genQuad("end_block", name, "_", "_")
+
+            startingQuad = searchQuad(startingQuad_label) # give me the next quad; it will be the startingQuad used in the symbol table
+            framelength = table.getCurrentOffset()
+            table.addPrintPhase(f"{table}\n\n") # save symbol table state before we update the fields and remove the level
+            table.updateFields(framelength, startingQuad) # update last entity's fields
+            table.removeLevel()
+
             # print('back at block')
             if token.recognized_string != '}':
               self.error('MissingCloseCurlyBracket')
@@ -592,10 +600,14 @@ class Parser:
             if token.family != 'id':
                 self.error('MissingInInoutdId')
             id = token.recognized_string
+            formal_parameter_entity = FormalParameter(id, 'cv') # create the new formal parameter entity
+
             curr_offset = table.getCurrentOffset() # get the current offset from the active scope
             parameter_entity = Parameter(id, 'cv', curr_offset) # create the new parameter entity with the correct offset
             table.addEntity(parameter_entity, 0) # add the newly created entity to the table (isConst=0)
-            table.addFormalParameter(entity, parameter_entity)
+            table.addFormalParameter(entity, formal_parameter_entity)
+
+
             token = self.get_token()        
 
         elif (token.recognized_string == 'inout'):
@@ -603,10 +615,12 @@ class Parser:
             if token.family != 'id':
                 self.error('MissingInInoutdId')
             id = token.recognized_string
+            formal_parameter_entity = FormalParameter(id, 'ref') # create the new formal parameter entity
+            
             curr_offset = table.getCurrentOffset() # get the current offset from the active scope
             parameter_entity = Parameter(id, 'ref', curr_offset) # create the new parameter entity with the correct offset
             table.addEntity(parameter_entity, 0) # add the newly created entity to the table (isConst=0)
-            table.addFormalParameter(entity, parameter_entity)
+            table.addFormalParameter(entity, formal_parameter_entity)
             token = self.get_token()        
 
         else:
@@ -904,6 +918,7 @@ class Parser:
                 id = token.recognized_string
                 function_entity = Function(id) # create the new function entity 
                 table.addEntity(function_entity, 0) # add the newly created entity to the table (isConst=0)
+                table.addPrintPhase(f"{table}\n\n") # save symbol table state before we add a new level
                 table.addLevel() # add a new level to the table
 
                 token = self.get_token()
@@ -1229,6 +1244,7 @@ class Table:
     def __init__(self):
         self.scope_list = [] # initialize a list of scopes
         self.addLevel()
+        self.printPhases = []
     
     # add a new entity to the current scope
     def addEntity(self, new_entity, isConst):
@@ -1252,7 +1268,7 @@ class Table:
 
     # update framelength and startingQuad fields in function or procedure entity
     def updateFields(self, framelength, startingQuad):
-        self.scope_list[-1].updateFields(framelength, startingQuad)
+        self.scope_list[-2].updateFields(framelength, startingQuad)
 
     # add a new formal parameter to the function or procedure entity specified
     def addFormalParameter(self, entity, formal_parameter):
@@ -1278,6 +1294,10 @@ class Table:
             temp += str(scope) # print scope
             temp += '\n'
         return temp
+    
+    # helper method
+    def addPrintPhase(self, phase_string):
+        self.printPhases.append(phase_string)
 
 level_counter = 0 # keeps track of the current scope level
 
@@ -1370,9 +1390,9 @@ class Procedure(Entity):
         self.formalParameters.append(formal_parameter) # add the new formal parameter to the list of parameters
 
     def __str__(self):
-        temp = f"{self.name}/{self.startingQuad}/{self.framelength}"
+        temp = f"{self.name}/({self.startingQuad})/{self.framelength}"
         for param in self.formalParameters:
-            temp += f"<{str(param)}>"
+            temp += f"  <{str(param)}>"
 
         return temp
          
@@ -1387,7 +1407,7 @@ class FormalParameter(Entity) :
         self.mode = mode
 
     def __str__(self):
-        temp = super.__str__()
+        temp = super().__str__()
         temp += f"/{self.mode}"
         return temp
 
@@ -1401,10 +1421,15 @@ class Parameter(FormalParameter) :
         return temp
 
                 
+# show all the symbol table phases in a readable format and export them to a .symb file
+def export_symbols():
+    symbol_file = open('test.symb', 'w')
+    for state in table.printPhases:
+        symbol_file.write(state)
 
         
 # name = sys.argv[1] # get command line argument
-name = "testparser.ci"
+name = "symbol_test.ci"
 token = Token(None, None, 1)
 lex = Lex(name, 1, token)
 parser = Parser(lex)
@@ -1416,4 +1441,4 @@ parser.syntax_analyzer() # run syntax analyzer
 # print_quads(quad_list) # TODO: delete useless
 export_quads(quad_list)
 create_c_code(quad_list)
-print(table)
+export_symbols()
