@@ -108,7 +108,6 @@ class Lex:
                         char = source_file.read(1) # peek  
                     else:
                         if ((char >= 'A' and char <= 'Z') or (char >= 'a' and char <= 'z')):
-                            # print('hit exception')
                             self.error('IllegalNameException')
                         source_file.seek(save_cursor) # revert cursor
                         family = 'number'
@@ -218,7 +217,6 @@ class Parser:
 
     def get_token(self):
         next_token = self.lexical_analyzer.next_token()
-        # print (next_token) # TODO: only for debugging purposes
         return next_token # get the next token
 
     def error(self, type):
@@ -281,7 +279,6 @@ class Parser:
         exit(-1)   
 
     def ifStat(self):
-        # print('ifStat')
         global token 
         if token.recognized_string == '(':
                 token = self.get_token()
@@ -304,14 +301,12 @@ class Parser:
             self.error('MissingOpenParen')
 
     def elsepart(self):
-        # print('elsepart')
         global token 
         if token.recognized_string == 'else':
             token = self.get_token()
             self.statements()
 
     def whileStat(self):
-        # print('whileStat')
         condQuad = nextQuad()
         global token 
         if token.recognized_string == '(':
@@ -331,7 +326,6 @@ class Parser:
             self.error('MissingOpenParen')
 
     def switchcaseStat(self):
-        # print('switchcaseStat')
         exitList = emptyList()
 
         global token 
@@ -365,7 +359,6 @@ class Parser:
 
 
     def forcaseStat(self):
-        # print('forcaseStat')
         firstCondQuad = nextQuad()
         global token 
         while(token.recognized_string == 'case'):
@@ -379,7 +372,7 @@ class Parser:
                     token = self.get_token()
                     self.statements()
 
-                    genQuad('jump','_','_', firstCondQuad) # TODO: maybe wrong
+                    genQuad('jump','_','_', firstCondQuad) # 
                     backpatch(condition.false, nextQuad())
                 else:
                      self.error('MissingCloseParen')
@@ -395,7 +388,6 @@ class Parser:
 
 
     def incaseStat(self):
-        # print('incaseStat')
         flag = newTemp()
         firstCondQuad = nextQuad()
         genQuad(':=',0,'_',flag)
@@ -430,7 +422,6 @@ class Parser:
             self.error('MissingDefault')
 
     def returnStat(self):
-        # print('returnStat')
         global token 
         if token.recognized_string == '(':
             token = self.get_token()
@@ -444,7 +435,6 @@ class Parser:
 
 
     def callStat(self):
-        # print('callstat')
         global token 
         if token.family != 'id':
             self.error('MissingId')
@@ -462,7 +452,6 @@ class Parser:
             self.error('MissingOpenParen')
 
     def printStat(self):
-        # print('printStat')
         global token 
         if token.recognized_string == '(':
             token = self.get_token()
@@ -476,7 +465,6 @@ class Parser:
 
 
     def inputStat(self):
-        # print('inputStat')
         global token 
         if token.recognized_string == '(':
             token = self.get_token()
@@ -497,7 +485,6 @@ class Parser:
             self.error('MissingOpenParen') 
 
     def declarations(self):
-        # print('declarations')
         global token 
         global table # the symbol table
 
@@ -535,7 +522,6 @@ class Parser:
              
     
     def program_block(self, name):
-        # print('block')
         global token 
         if token.recognized_string == '{':
             token = self.get_token()
@@ -543,11 +529,9 @@ class Parser:
             self.subprograms()
 
             genQuad("begin_block", name, "_", "_")
-            # TODO: blockstatements or block?
             self.blockstatements()
             genQuad("halt", "_", "_", "_") # the only differance to block()
             genQuad("end_block", name, "_", "_")
-            # print('back at block')
             if token.recognized_string != '}':
               self.error('MissingCloseCurlyBracket')
             token = self.get_token()
@@ -556,7 +540,6 @@ class Parser:
             self.error('MissingOpenCurlyBracket')       
 
     def block(self, name):
-        # print('block')
         global token 
         if token.recognized_string == '{':
             token = self.get_token()
@@ -565,7 +548,6 @@ class Parser:
 
             genQuad("begin_block", name, "_", "_")
             startingQuad_label = nextQuad() # give me the next quad; it will be the startingQuad used in the symbol table
-            # TODO: blockstatements or block?
             self.blockstatements()
             genQuad("end_block", name, "_", "_")
 
@@ -575,7 +557,6 @@ class Parser:
             table.updateFields(framelength, startingQuad) # update last entity's fields
             table.removeLevel()
 
-            # print('back at block')
             if token.recognized_string != '}':
               self.error('MissingCloseCurlyBracket')
             token = self.get_token()
@@ -584,7 +565,6 @@ class Parser:
             self.error('MissingOpenCurlyBracket')       
     
     def formalparlist(self, entity):
-        # print('formalparlist')
         global token 
         if token.recognized_string != ')': # if parenthesis don't close immediately
             self.formalparitem(entity)
@@ -593,7 +573,6 @@ class Parser:
                 self.formalparitem(entity)
 
     def formalparitem(self, entity):
-        # print('formalparitem')
         global token 
         if (token.recognized_string == 'in'):
             token = self.get_token()
@@ -627,7 +606,6 @@ class Parser:
             self.error('MissingInInout')     
 
     def statements(self):
-        # print('statements')
         global token 
         if token.recognized_string == '{':
             token = self.get_token()
@@ -645,16 +623,13 @@ class Parser:
             token = self.get_token()
            
     def blockstatements(self):
-        # print('blockstatements')
         global token 
         self.statement()
-        # print('back at blockstatements')
         while(token.recognized_string == ';'):
             token = self.get_token()
             self.statement()   
 
     def statement(self):
-        # print('statement')
         global token 
 
         if token.recognized_string =='if':
@@ -701,7 +676,6 @@ class Parser:
         
                 
     def assignStat(self, id):
-        # print('assignStat')
         global token 
         if (token.family == 'assignment'):
             token = self.get_token()
@@ -711,7 +685,6 @@ class Parser:
             self.error('MissingAssignment') 
 
     def condition(self):
-        # print('condition')
         global token
         boolterm1 = self.boolterm()
         # self.boolterm()
@@ -727,7 +700,6 @@ class Parser:
         return condition
 
     def boolterm (self):
-        # print('boolterm ')
         global token 
         boolfactor1 = self.boolfactor()
         boolterm = Bool_List()
@@ -743,7 +715,6 @@ class Parser:
         return boolterm    
             
     def boolfactor(self):
-        # print('boolfactor')
         global token
         boolfactor = Bool_List()
         if token.recognized_string == 'not':
@@ -782,11 +753,10 @@ class Parser:
             boolfactor.false = makeList(nextQuad())
             genQuad('jump','_','_','_')
 
-        return boolfactor #TODO: was indented (inside else)
+        return boolfactor 
                  
         
     def expression(self):
-        # print('expression')
         global token 
         self.optionalSign()
         t1_place = self.term()
@@ -801,7 +771,6 @@ class Parser:
         return e_place
             
     def term(self):
-        # print('term')
         global token 
         f1_place = self.factor()
         while(token.family == 'mulOperator'):
@@ -815,7 +784,6 @@ class Parser:
 
 
     def factor(self):
-        # print('factor')
         global token
         if token.recognized_string == '(':
             token = self.get_token()
@@ -843,7 +811,6 @@ class Parser:
   
         
     def program(self):
-        # print('program')
         global token
         if token.recognized_string == 'program':
             token = self.get_token()
@@ -867,7 +834,6 @@ class Parser:
 
             
     def actualparlist(self, id, needRet=0):
-        # print('actualparlist')
         global token
         if (token.recognized_string != ')'): # if parenthesis don't close immediately
             self.actualparitem()
@@ -885,7 +851,6 @@ class Parser:
             return t;
 
     def actualparitem(self):
-        # print('actualparitem')
         global token
         if token.recognized_string == 'in':
             token = self.get_token()
@@ -906,7 +871,6 @@ class Parser:
 
                    
     def subprogram(self):
-        # print('subprogram')
         global token 
         global table
 
@@ -966,14 +930,12 @@ class Parser:
 
 
     def subprograms(self):
-        # print('subprograms')
         global token 
         while(token.recognized_string == 'function' or token.recognized_string == 'procedure'):
             self.subprogram()
            
 
     def idtail(self, id):
-        # print('idtail')
         global token
         id_place = id # often the idtail is just called by a variable, so just return its name
         if token.recognized_string == '(':
@@ -986,14 +948,12 @@ class Parser:
         return id_place # return to factor rule
             
     def optionalSign(self):
-        # print('optionalSign')
         global token
         if token.family == 'addOperator':
           token = self.get_token()
 
             
     def varlist(self):
-        # print('varlist')
         global token 
         global table
 
@@ -1055,7 +1015,7 @@ def searchQuad(label):
         if quad.get_label() == label:
             return quad # return quad object
     # should never get here!
-    print("Fatal error")
+    print("Quad could not be found!")
     exit(-1)
 
 
@@ -1326,7 +1286,7 @@ class Scope:
             self.rel_offset += 4 # if a new entity is added, the offset is incremented by 4 bytes
 
     def updateFields(self, framelength, startingQuad):
-        self.entity_list[-1].updateFields(framelength, startingQuad) # TODO: maybe not the last entity?
+        self.entity_list[-1].updateFields(framelength, startingQuad) 
 
     def addFormalParameter(self, entity, formal_parameter):
         entity.addFormalParameter(formal_parameter) 
@@ -1449,7 +1409,6 @@ table = Table()
 parser.syntax_analyzer() # run syntax analyzer
 
 
-# print_quads(quad_list) # TODO: delete useless
 export_quads(quad_list)
 create_c_code(quad_list)
 export_symbols()
