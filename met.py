@@ -423,7 +423,7 @@ class Parser:
 
         # added default statement 
         if(token.recognized_string == 'default'):
-            genQuad('=', 1, flag, firstCondQuad)
+            genQuad('=', flag, 1, firstCondQuad)
             token = self.get_token()
             self.statements()
         else:
@@ -1126,6 +1126,8 @@ def create_c_code(quad_list):
             if (not operand.isnumeric()): operands.add(operand)
             operand = f"{quad.op2}"
             if (not operand.isnumeric()): operands.add(operand)
+            operand = f"{quad.target}"
+            if (not operand.isnumeric()): operands.add(operand)
             
             
         elif(quad.operator == '-'):
@@ -1133,6 +1135,8 @@ def create_c_code(quad_list):
             operand = f"{quad.op1}"
             if (not operand.isnumeric()): operands.add(operand)
             operand = f"{quad.op2}"
+            if (not operand.isnumeric()): operands.add(operand)
+            operand = f"{quad.target}"
             if (not operand.isnumeric()): operands.add(operand)
             
 
@@ -1142,6 +1146,8 @@ def create_c_code(quad_list):
             if (not operand.isnumeric()): operands.add(operand)
             operand = f"{quad.op2}"
             if (not operand.isnumeric()): operands.add(operand)
+            operand = f"{quad.target}"
+            if (not operand.isnumeric()): operands.add(operand)
             
 
         elif(quad.operator == '/'):
@@ -1150,13 +1156,15 @@ def create_c_code(quad_list):
             if (not operand.isnumeric()): operands.add(operand)
             operand = f"{quad.op2}"
             if (not operand.isnumeric()): operands.add(operand)
+            operand = f"{quad.target}"
+            if (not operand.isnumeric()): operands.add(operand)
             
 
         elif(quad.operator == ':='):
             temp += f"{quad.target} = {quad.op1};" 
             operand = f"{quad.op1}"
             if (not operand.isnumeric()): operands.add(operand)
-            operand = f"{quad.op2}"
+            operand = f"{quad.target}"
             if (not operand.isnumeric()): operands.add(operand)
             
 
