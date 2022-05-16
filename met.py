@@ -1399,7 +1399,6 @@ class Parameter(FormalParameter) :
         temp = f"{self.name}/{self.offset}/{self.mode}"
         return temp
 
-
                 
 #------------------------------------------#
 # main #
