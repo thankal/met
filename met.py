@@ -1400,9 +1400,6 @@ class Parameter(FormalParameter) :
         return temp
 
 
-def loadvr(v, reg):
-    # v: source variable
-    # reg: target register
                 
 #------------------------------------------#
 # main #
